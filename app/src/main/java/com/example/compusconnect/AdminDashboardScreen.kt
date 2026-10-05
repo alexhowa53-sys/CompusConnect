@@ -33,8 +33,8 @@ data class AdminEvent(
 )
 
 val sampleAdminEvents = listOf(
-    AdminEvent("1", "Indie Night on the Quad", "Oct 14 · 7:00 PM", "On sale", "248 tickets"),
-    AdminEvent("2", "Acoustic Coffeehouse", "Oct 22 · 8:00 PM", "Scheduled", "54 tickets"),
+    AdminEvent("1", "Open Air", "Oct 14 · 7:00 PM", "On sale", "248 tickets"),
+    AdminEvent("2", "Movie Night", "Oct 22 · 8:00 PM", "Scheduled", "54 tickets"),
     AdminEvent("3", "Open Mic Poetry Slam", "Nov 02 · 6:30 PM", "Draft", "0 tickets")
 )
 
@@ -123,7 +123,7 @@ fun AdminDashboardScreen(
             ) {
                 MetricCard(title = "Tickets", value = "486", modifier = Modifier.weight(1f))
                 MetricCard(title = "Check-ins", value = "71%", modifier = Modifier.weight(1f))
-                MetricCard(title = "Revenue", value = "$4.8K", modifier = Modifier.weight(1f))
+                MetricCard(title = "Revenue", value = "K20000.00", modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(24.dp))

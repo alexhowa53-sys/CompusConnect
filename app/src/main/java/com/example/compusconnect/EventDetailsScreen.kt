@@ -27,11 +27,11 @@ import com.example.compusconnect.ui.theme.CompusConnectTheme
 
 @Composable
 fun EventDetailsScreen(
-    eventTitle: String = "Indie Night on the Quad",
+    eventTitle: String = "Social Weekend",
     category: EventCategory = EventCategory.MUSIC,
     dateText: String = "Thursday, Oct 14 · 7:00 PM",
     locationText: String = "Great Hall Lawn",
-    hostText: String = "Hosted by Campus Activities Board",
+    hostText: String = "SRC",
     priceText: String = "K6000",
     descriptionText: String = "Join us for an unforgettable evening under the stars featuring student indie bands, food trucks, and art installations. Bring your student ID and a blanket to sit on the lawn!",
     tags: List<String> = listOf("All ages", "Outdoors", "Accessible"),
