@@ -9,7 +9,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
@@ -20,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,44 +32,35 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.compusconnect.ui.theme.CompusConnectTheme
 
-// Category date-block colors are shared from HomeScreen.kt
-
-data class SearchEvent(
-    val id: String,
-    val title: String,
-    val day: String,
-    val month: String,
-    val time: String,
-    val location: String,
-    val category: EventCategory,
-    val isPaid: Boolean,
-    val price: String
-)
-
-val searchSampleEvents = listOf(
-    SearchEvent("1", "Open Air", "14", "OCT", "7:00 PM", "Pa Comp", EventCategory.MUSIC, true, "$5.00"),
-    SearchEvent("2", "Tech Careers Fair", "16", "OCT", "10:00 AM", "ComLab1", EventCategory.CAREER, false, ""),
-    SearchEvent("3", "UNIMA Football Finals", "18", "OCT", "4:30 PM", "Chilunga", EventCategory.SPORTS, true, "$2.00"),
-    SearchEvent("4", "Poetry & Spoken Word Night", "21", "OCT", "6:00 PM", "Room A", EventCategory.COMMUNITY, false, ""),
-    SearchEvent("5", "Capso Event", "23", "OCT", "5:00 PM", "Room B", EventCategory.MUSIC, false, "")
-)
-
 @Composable
 fun SearchScreen(
     currentScreen: Int = 1,
     onNavigate: (Int) -> Unit = {},
-    onEventClick: (SearchEvent) -> Unit = {}
+    events: List<Event> = sampleEvents,
+    onEventClick: (Event) -> Unit = {},
+    onToggleSave: (Event) -> Unit = {}
 ) {
-    var selectedFilter by remember { mutableStateOf("This week") }
-    val filters = listOf("This week", "Free", "Category", "Time")
+    var selectedFilter by remember { mutableStateOf("All") }
+    var searchQuery by remember { mutableStateOf("") }
+    val filters = listOf("All", "This week", "Music", "Sports", "Career", "Free")
 
-    // Filter events based on selected filter
-    val filteredEvents = remember(selectedFilter) {
-        when (selectedFilter) {
-            "Free" -> searchSampleEvents.filter { !it.isPaid }
-            "Category" -> searchSampleEvents.filter { it.category == EventCategory.MUSIC }
-            "Time" -> searchSampleEvents.sortedBy { it.day }
-            else -> searchSampleEvents
+    // Filter events based on selected filter and real-time search query matching title, location, or description
+    val filteredEvents = remember(events, selectedFilter, searchQuery) {
+        val query = searchQuery.trim().lowercase()
+        events.filter { event ->
+            val matchesCategory = when (selectedFilter) {
+                "Free" -> !event.isPaid
+                "Music" -> event.category == EventCategory.MUSIC
+                "Sports" -> event.category == EventCategory.SPORTS
+                "Career" -> event.category == EventCategory.CAREER || event.category == EventCategory.COMMUNITY
+                "This week" -> true
+                else -> true
+            }
+            val matchesQuery = query.isEmpty() ||
+                event.title.lowercase().contains(query) ||
+                event.location.lowercase().contains(query) ||
+                event.description.lowercase().contains(query)
+            matchesCategory && matchesQuery
         }
     }
 
@@ -112,7 +108,7 @@ fun SearchScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Search Bar below headline
+                // Interactive Search Bar below headline
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -130,20 +126,51 @@ fun SearchScreen(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Search by event or organization",
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 15.sp,
-                        color = CampusGrey.copy(alpha = 0.7f),
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { /* Open filters */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = "Filter",
-                            tint = CampusNavy,
-                            modifier = Modifier.size(20.dp)
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = "Search by event, location, or description",
+                                fontFamily = FontFamily.SansSerif,
+                                fontSize = 14.sp,
+                                color = CampusGrey.copy(alpha = 0.7f)
+                            )
+                        }
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                fontFamily = FontFamily.SansSerif,
+                                fontSize = 14.sp,
+                                color = CampusInk
+                            )
                         )
+                    }
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(
+                            onClick = { searchQuery = "" },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = CampusGrey,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { /* Open filters */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = "Filter",
+                                tint = CampusNavy,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -212,7 +239,11 @@ fun SearchScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(filteredEvents) { event ->
-                    SearchEventCard(event = event, onClick = { onEventClick(event) })
+                    SearchEventCard(
+                        event = event,
+                        onClick = { onEventClick(event) },
+                        onToggleSave = { onToggleSave(event) }
+                    )
                 }
             }
         }
@@ -252,7 +283,11 @@ fun SearchFilterChip(
 }
 
 @Composable
-fun SearchEventCard(event: SearchEvent, onClick: () -> Unit = {}) {
+fun SearchEventCard(
+    event: Event,
+    onClick: () -> Unit = {},
+    onToggleSave: () -> Unit = {}
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -313,36 +348,57 @@ fun SearchEventCard(event: SearchEvent, onClick: () -> Unit = {}) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                // Category Label
-                Text(
-                    text = event.category.label,
-                    fontFamily = FontFamily.SansSerif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    color = event.category.color,
-                    letterSpacing = 1.sp
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        // Category Label
+                        Text(
+                            text = event.category.label,
+                            fontFamily = FontFamily.SansSerif,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = event.category.color,
+                            letterSpacing = 1.sp
+                        )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
 
-                // Event Title (Bold Serif)
-                Text(
-                    text = event.title,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = CampusInk
-                )
+                        // Event Title (Bold Serif)
+                        Text(
+                            text = event.title,
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = CampusInk
+                        )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                // Time and Location
-                Text(
-                    text = "${event.time} • ${event.location}",
-                    fontFamily = FontFamily.SansSerif,
-                    fontSize = 13.sp,
-                    color = CampusGrey
-                )
+                        // Time and Location
+                        Text(
+                            text = "${event.time} • ${event.location}",
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 13.sp,
+                            color = CampusGrey
+                        )
+                    }
+
+                    // Bookmark / Heart Toggle Button
+                    IconButton(
+                        onClick = onToggleSave,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (event.isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Save event",
+                            tint = if (event.isSaved) Color(0xFF6650a4) else CampusGrey,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 

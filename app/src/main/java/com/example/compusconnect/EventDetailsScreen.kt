@@ -27,19 +27,13 @@ import com.example.compusconnect.ui.theme.CompusConnectTheme
 
 @Composable
 fun EventDetailsScreen(
-    eventTitle: String = "Social Weekend",
-    category: EventCategory = EventCategory.MUSIC,
-    dateText: String = "Thursday, Oct 14 · 7:00 PM",
-    locationText: String = "Great Hall",
-    hostText: String = "Hosted by SRC",
-    priceText: String = "K6000",
-    descriptionText: String = "Join us for an unforgettable evening under the stars featuring student indie bands, food trucks, and art installations. Bring your student ID and a blanket to sit on the lawn!",
-    tags: List<String> = listOf("All ages", "Outdoors", "Accessible"),
+    event: Event,
     onBackClick: () -> Unit = {},
+    onToggleSave: () -> Unit = {},
     onShareClick: () -> Unit = {},
     onBuyTicketClick: () -> Unit = {}
 ) {
-    val isFree = priceText.equals("Free", ignoreCase = true)
+    val isFree = !event.isPaid
 
     Scaffold(
         containerColor = CampusCream,
@@ -53,12 +47,10 @@ fun EventDetailsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalArrangement = if (isFree) Arrangement.Center else Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        horizontalAlignment = if (isFree) Alignment.CenterHorizontally else Alignment.Start
-                    ) {
+                    Column {
                         Text(
                             text = if (isFree) "Admission" else "Student Price",
                             fontFamily = FontFamily.SansSerif,
@@ -66,7 +58,7 @@ fun EventDetailsScreen(
                             color = CampusGrey
                         )
                         Text(
-                            text = priceText,
+                            text = if (isFree) "Free" else event.price,
                             fontFamily = FontFamily.Serif,
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp,
@@ -109,7 +101,7 @@ fun EventDetailsScreen(
                     .height(260.dp)
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(category.color, CampusNavy)
+                            colors = listOf(event.category.color, CampusNavy)
                         )
                     )
             ) {
@@ -118,7 +110,8 @@ fun EventDetailsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         onClick = onBackClick,
@@ -134,18 +127,35 @@ fun EventDetailsScreen(
                         )
                     }
 
-                    IconButton(
-                        onClick = onShareClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.3f))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share",
-                            tint = Color.White
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Bookmark / Heart Toggle Button
+                        IconButton(
+                            onClick = onToggleSave,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.3f))
+                        ) {
+                            Icon(
+                                imageVector = if (event.isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Save event",
+                                tint = if (event.isSaved) Color(0xFF6650a4) else Color.White
+                            )
+                        }
+
+                        IconButton(
+                            onClick = onShareClick,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.3f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
 
@@ -160,7 +170,7 @@ fun EventDetailsScreen(
                         color = CampusAmber
                     ) {
                         Text(
-                            text = category.label,
+                            text = event.category.label,
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
@@ -180,7 +190,7 @@ fun EventDetailsScreen(
             ) {
                 // Title
                 Text(
-                    text = eventTitle,
+                    text = event.title,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     fontSize = 26.sp,
@@ -190,11 +200,11 @@ fun EventDetailsScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Info Rows
-                InfoRow(icon = Icons.Default.CalendarToday, title = dateText)
+                InfoRow(icon = Icons.Default.CalendarToday, title = "${event.month} ${event.day} · ${event.time}")
                 Spacer(modifier = Modifier.height(12.dp))
-                InfoRow(icon = Icons.Default.LocationOn, title = locationText)
+                InfoRow(icon = Icons.Default.LocationOn, title = event.location)
                 Spacer(modifier = Modifier.height(12.dp))
-                InfoRow(icon = Icons.Default.Person, title = hostText)
+                InfoRow(icon = Icons.Default.Person, title = "Hosted by Campus Organization")
 
                 Spacer(modifier = Modifier.height(24.dp))
                 HorizontalDivider(color = CampusLightBeige, thickness = 1.dp)
@@ -212,7 +222,7 @@ fun EventDetailsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = descriptionText,
+                    text = event.description,
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 14.sp,
                     color = CampusGrey,
@@ -225,7 +235,7 @@ fun EventDetailsScreen(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    tags.forEach { tag ->
+                    listOf("All ages", "Student ID required", "Accessible").forEach { tag ->
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = CampusLightBeige
@@ -281,6 +291,21 @@ fun InfoRow(icon: ImageVector, title: String) {
 @Composable
 fun EventDetailsScreenPreview() {
     CompusConnectTheme {
-        EventDetailsScreen()
+        EventDetailsScreen(
+            event = Event(
+                id = "1",
+                title = "Tech Careers Fair",
+                day = "16",
+                month = "OCT",
+                time = "10:00 AM",
+                location = "Student Center Hall B",
+                description = "Connect with top tech employers.",
+                category = EventCategory.CAREER,
+                isPaid = false,
+                price = "",
+                isSaved = false,
+                isPurchased = false
+            )
+        )
     }
 }

@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -27,35 +29,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.compusconnect.ui.theme.CompusConnectTheme
 
-data class UserTicket(
-    val id: String,
-    val eventTitle: String,
-    val day: String,
-    val month: String,
-    val time: String,
-    val location: String,
-    val category: EventCategory,
-    val status: String, // "Ready" or "Used"
-    val isPurchased: Boolean
-)
-
-val sampleUserTickets = listOf(
-    UserTicket("1", "Welcoming Function", "14", "OCT", "7:00 PM", "Great Hal", EventCategory.MUSIC, "Ready", true),
-    UserTicket("2", "UNIMA Football Finals", "18", "OCT", "4:30 PM", "Chilunga", EventCategory.SPORTS, "Ready", true),
-    UserTicket("3", "AI & Ethics Symposium", "05", "SEP", "2:00 PM", "Catographic Lab", EventCategory.CAREER, "Used", true)
-)
-
 @Composable
 fun TicketsScreen(
     currentScreen: Int = 2,
-    onNavigate: (Int) -> Unit = {}
+    onNavigate: (Int) -> Unit = {},
+    events: List<Event> = sampleEvents,
+    onEventClick: (Event) -> Unit = {},
+    onToggleSave: (Event) -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0: Purchased, 1: Saved
     val tabs = listOf("Purchased", "Saved")
 
-    val ticketsToShow = remember(selectedTab) {
-        if (selectedTab == 0) sampleUserTickets.filter { it.isPurchased }
-        else sampleUserTickets.filter { !it.isPurchased }
+    val ticketsToShow = remember(selectedTab, events) {
+        if (selectedTab == 0) events.filter { it.isPurchased }
+        else events.filter { it.isSaved }
     }
 
     Scaffold(
@@ -146,15 +133,35 @@ fun TicketsScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(ticketsToShow) { ticket ->
-                    UserTicketCard(ticket = ticket)
+            if (ticketsToShow.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (selectedTab == 0) "No purchased tickets yet." else "No saved events yet.",
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 14.sp,
+                        color = CampusGrey
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(ticketsToShow) { event ->
+                        UserTicketCard(
+                            event = event,
+                            onClick = { onEventClick(event) },
+                            onToggleSave = { onToggleSave(event) }
+                        )
+                    }
                 }
             }
         }
@@ -162,10 +169,15 @@ fun TicketsScreen(
 }
 
 @Composable
-fun UserTicketCard(ticket: UserTicket) {
+fun UserTicketCard(
+    event: Event,
+    onClick: () -> Unit = {},
+    onToggleSave: () -> Unit = {}
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .shadow(elevation = 3.dp, shape = RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         color = Color.White
@@ -181,7 +193,7 @@ fun UserTicketCard(ticket: UserTicket) {
                 modifier = Modifier
                     .width(88.dp)
                     .fillMaxHeight()
-                    .background(ticket.category.color),
+                    .background(event.category.color),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -189,18 +201,18 @@ fun UserTicketCard(ticket: UserTicket) {
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = ticket.day,
+                        text = event.day,
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                         fontSize = 28.sp,
                         color = CampusCream
                     )
                     Text(
-                        text = ticket.month,
+                        text = event.month,
                         fontFamily = FontFamily.SansSerif,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
-                        color = if (ticket.category == EventCategory.MUSIC) CampusNavy else CampusAmber
+                        color = if (event.category == EventCategory.MUSIC) CampusNavy else CampusAmber
                     )
                 }
 
@@ -227,35 +239,52 @@ fun UserTicketCard(ticket: UserTicket) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = ticket.category.label,
+                        text = event.category.label,
                         fontFamily = FontFamily.SansSerif,
                         fontWeight = FontWeight.Bold,
                         fontSize = 10.sp,
-                        color = ticket.category.color,
+                        color = event.category.color,
                         letterSpacing = 1.sp
                     )
 
-                    // Status Badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (ticket.status == "Ready") CampusAmber else CampusLightBeige)
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = ticket.status,
-                            fontFamily = FontFamily.SansSerif,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                            color = if (ticket.status == "Ready") CampusInk else CampusGrey
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Status Badge if purchased
+                        if (event.isPurchased) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CampusAmber)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "Ready",
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    color = CampusInk
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
+                        IconButton(
+                            onClick = onToggleSave,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (event.isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Save",
+                                tint = if (event.isSaved) Color(0xFF6650a4) else CampusGrey,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = ticket.eventTitle,
+                    text = event.title,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
@@ -265,7 +294,7 @@ fun UserTicketCard(ticket: UserTicket) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${ticket.time} • ${ticket.location}",
+                    text = "${event.time} • ${event.location}",
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 13.sp,
                     color = CampusGrey

@@ -26,11 +26,9 @@ import com.example.compusconnect.ui.theme.CompusConnectTheme
 
 @Composable
 fun TicketConfirmationScreen(
-    eventTitle: String = "Welcoming Function",
-    eventDate: String = "Oct 14, 2025 · 7:00 PM",
-    eventLocation: String = "Great Hall",
+    event: Event,
     ticketRef: String = "CC-2025-8849",
-    holderName: String = "Alex Morgan",
+    holderName: String = "Alex Lee",
     onViewMyTicketsClick: () -> Unit = {},
     onBackToHomeClick: () -> Unit = {}
 ) {
@@ -110,7 +108,7 @@ fun TicketConfirmationScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = eventTitle,
+                        text = event.title,
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
@@ -121,7 +119,7 @@ fun TicketConfirmationScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = eventDate,
+                        text = "${event.month} ${event.day}, 2025 · ${event.time}",
                         fontFamily = FontFamily.SansSerif,
                         fontSize = 14.sp,
                         color = CampusAmber,
@@ -129,7 +127,7 @@ fun TicketConfirmationScreen(
                     )
 
                     Text(
-                        text = eventLocation,
+                        text = event.location,
                         fontFamily = FontFamily.SansSerif,
                         fontSize = 13.sp,
                         color = CampusGrey
@@ -249,6 +247,21 @@ fun TicketConfirmationScreen(
 @Composable
 fun TicketConfirmationScreenPreview() {
     CompusConnectTheme {
-        TicketConfirmationScreen()
+        TicketConfirmationScreen(
+            event = Event(
+                id = "1",
+                title = "Welcoming Function",
+                day = "14",
+                month = "OCT",
+                time = "7:00 PM",
+                location = "Great Hall",
+                description = "Join us for the biggest night.",
+                category = EventCategory.MUSIC,
+                isPaid = true,
+                price = "K5000.00",
+                isSaved = true,
+                isPurchased = true
+            )
+        )
     }
 }
