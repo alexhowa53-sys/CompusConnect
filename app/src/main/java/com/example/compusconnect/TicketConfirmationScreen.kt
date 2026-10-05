@@ -26,9 +26,9 @@ import com.example.compusconnect.ui.theme.CompusConnectTheme
 
 @Composable
 fun TicketConfirmationScreen(
-    eventTitle: String = "Indie Night on the Quad",
+    eventTitle: String = "Welcoming Function",
     eventDate: String = "Oct 14, 2025 · 7:00 PM",
-    eventLocation: String = "Great Hall Lawn",
+    eventLocation: String = "Great Hall",
     ticketRef: String = "CC-2025-8849",
     holderName: String = "Alex Morgan",
     onViewMyTicketsClick: () -> Unit = {},

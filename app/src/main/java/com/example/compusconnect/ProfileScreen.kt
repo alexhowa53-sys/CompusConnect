@@ -59,7 +59,7 @@ fun ProfileScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "ML",
+                    text = "AL",
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
@@ -70,7 +70,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Maya Lin",
+                text = "Alex Lee",
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp,
@@ -78,7 +78,7 @@ fun ProfileScreen(
             )
 
             Text(
-                text = "maya.lin@campus.edu • Computer Science '26",
+                text = "alexhowa53@gmail.com• Computer Science '26",
                 fontFamily = FontFamily.SansSerif,
                 fontSize = 13.sp,
                 color = CampusGrey

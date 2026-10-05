@@ -29,7 +29,7 @@ fun LoginAuthScreen(
 ) {
     var isLoginTab by remember { mutableStateOf(true) }
     var isAdminSelected by remember { mutableStateOf(false) } // false = Student, true = Administrator
-    var email by remember { mutableStateOf("maya.lin@campus.edu") }
+    var email by remember { mutableStateOf("alexhowa53@gmail.com") }
     var password by remember { mutableStateOf("••••••••") }
     var rememberMe by remember { mutableStateOf(true) }
 

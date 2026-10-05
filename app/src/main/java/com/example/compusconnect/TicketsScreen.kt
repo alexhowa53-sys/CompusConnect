@@ -40,9 +40,9 @@ data class UserTicket(
 )
 
 val sampleUserTickets = listOf(
-    UserTicket("1", "Indie Night on the Quad", "14", "OCT", "7:00 PM", "Great Hall Lawn", EventCategory.MUSIC, "Ready", true),
-    UserTicket("2", "Inter-Hall Football Finals", "18", "OCT", "4:30 PM", "Main Sports Complex", EventCategory.SPORTS, "Ready", true),
-    UserTicket("3", "AI & Ethics Symposium", "05", "SEP", "2:00 PM", "Auditorium A", EventCategory.CAREER, "Used", true)
+    UserTicket("1", "Welcoming Function", "14", "OCT", "7:00 PM", "Great Hal", EventCategory.MUSIC, "Ready", true),
+    UserTicket("2", "UNIMA Football Finals", "18", "OCT", "4:30 PM", "Chilunga", EventCategory.SPORTS, "Ready", true),
+    UserTicket("3", "AI & Ethics Symposium", "05", "SEP", "2:00 PM", "Catographic Lab", EventCategory.CAREER, "Used", true)
 )
 
 @Composable

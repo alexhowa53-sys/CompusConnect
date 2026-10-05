@@ -42,11 +42,11 @@ data class SearchEvent(
 )
 
 val searchSampleEvents = listOf(
-    SearchEvent("1", "Homecoming Concert Night", "14", "OCT", "7:00 PM", "Great Hall Lawn", EventCategory.MUSIC, true, "$5.00"),
-    SearchEvent("2", "Tech Careers Fair", "16", "OCT", "10:00 AM", "Student Center Hall B", EventCategory.CAREER, false, ""),
-    SearchEvent("3", "Inter-Hall Football Finals", "18", "OCT", "4:30 PM", "Main Sports Complex", EventCategory.SPORTS, true, "$2.00"),
-    SearchEvent("4", "Poetry & Spoken Word Night", "21", "OCT", "6:00 PM", "Library Courtyard", EventCategory.COMMUNITY, false, ""),
-    SearchEvent("5", "Jazz in the Quad", "23", "OCT", "5:00 PM", "South Quad", EventCategory.MUSIC, false, "")
+    SearchEvent("1", "Open Air", "14", "OCT", "7:00 PM", "Pa Comp", EventCategory.MUSIC, true, "$5.00"),
+    SearchEvent("2", "Tech Careers Fair", "16", "OCT", "10:00 AM", "ComLab1", EventCategory.CAREER, false, ""),
+    SearchEvent("3", "UNIMA Football Finals", "18", "OCT", "4:30 PM", "Chilunga", EventCategory.SPORTS, true, "$2.00"),
+    SearchEvent("4", "Poetry & Spoken Word Night", "21", "OCT", "6:00 PM", "Room A", EventCategory.COMMUNITY, false, ""),
+    SearchEvent("5", "Capso Event", "23", "OCT", "5:00 PM", "Room B", EventCategory.MUSIC, false, "")
 )
 
 @Composable
