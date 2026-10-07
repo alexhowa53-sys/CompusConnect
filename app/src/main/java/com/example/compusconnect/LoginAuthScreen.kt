@@ -28,7 +28,7 @@ fun LoginAuthScreen(
     onLoginSuccess: (isAdmin: Boolean) -> Unit = {}
 ) {
     var isLoginTab by remember { mutableStateOf(true) }
-    var isAdminSelected by remember { mutableStateOf(false) } // false = Student, true = Administrator
+    var isAdminSelected by remember { mutableStateOf(false) } // false = Student, true = Administrator (used only when signing up)
     var email by remember { mutableStateOf("alexhowa53@gmail.com") }
     var password by remember { mutableStateOf("••••••••") }
     var rememberMe by remember { mutableStateOf(true) }
@@ -113,52 +113,54 @@ fun LoginAuthScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Account type selector (Student / Administrator)
-            Text(
-                text = "Account Type",
-                fontFamily = FontFamily.SansSerif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = CampusNavy,
-                modifier = Modifier.align(Alignment.Start)
-            )
+            // Account type selector (Student / Administrator) - Shown ONLY during Sign up
+            if (!isLoginTab) {
+                Text(
+                    text = "Account Type",
+                    fontFamily = FontFamily.SansSerif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = CampusNavy,
+                    modifier = Modifier.align(Alignment.Start)
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { isAdminSelected = false },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (!isAdminSelected) CampusNavy else Color.White,
-                        contentColor = if (!isAdminSelected) CampusCream else CampusNavy
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(text = "Student", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(
+                        onClick = { isAdminSelected = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (!isAdminSelected) CampusNavy else Color.White,
+                            contentColor = if (!isAdminSelected) CampusCream else CampusNavy
+                        )
+                    ) {
+                        Text(text = "Student", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    OutlinedButton(
+                        onClick = { isAdminSelected = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isAdminSelected) CampusNavy else Color.White,
+                            contentColor = if (isAdminSelected) CampusCream else CampusNavy
+                        )
+                    ) {
+                        Text(text = "Administrator", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
+                    }
                 }
 
-                OutlinedButton(
-                    onClick = { isAdminSelected = true },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (isAdminSelected) CampusNavy else Color.White,
-                        contentColor = if (isAdminSelected) CampusCream else CampusNavy
-                    )
-                ) {
-                    Text(text = "Administrator", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
-                }
+                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Email input
             OutlinedTextField(
@@ -229,9 +231,18 @@ fun LoginAuthScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Login Button
+            // Action Button (Log in / Create Account)
             Button(
-                onClick = { onLoginSuccess(isAdminSelected) },
+                onClick = {
+                    val isAdmin = if (isLoginTab) {
+                        // System decides role based on email during login (e.g., contains 'admin')
+                        email.contains("admin", ignoreCase = true)
+                    } else {
+                        // User chooses role when signing up
+                        isAdminSelected
+                    }
+                    onLoginSuccess(isAdmin)
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = CampusAmber),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
