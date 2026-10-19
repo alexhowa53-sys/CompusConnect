@@ -24,26 +24,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.compusconnect.ui.theme.CompusConnectTheme
 
-data class AdminEvent(
-    val id: String,
-    val title: String,
-    val date: String,
-    val status: String, // "On sale", "Draft", "Scheduled"
-    val ticketsSold: String
-)
-
-val sampleAdminEvents = listOf(
-    AdminEvent("1", "Open Air", "Oct 14 · 7:00 PM", "On sale", "248 tickets"),
-    AdminEvent("2", "Movie Night", "Oct 22 · 8:00 PM", "Scheduled", "54 tickets"),
-    AdminEvent("3", "Open Mic Poetry Slam", "Nov 02 · 6:30 PM", "Draft", "0 tickets")
-)
-
 @Composable
 fun AdminDashboardScreen(
     currentAdminTab: Int = 0,
     onAdminTabSelected: (Int) -> Unit = {},
+    events: List<Event> = sampleEvents,
     onCreateEventClick: () -> Unit = {},
-    onSwitchToStudentView: () -> Unit = {}
+    onSwitchToStudentView: () -> Unit = {},
+    onDeleteEvent: (Event) -> Unit = {}
 ) {
     Scaffold(
         containerColor = CampusCream,
@@ -121,7 +109,7 @@ fun AdminDashboardScreen(
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MetricCard(title = "Tickets", value = "486", modifier = Modifier.weight(1f))
+                MetricCard(title = "Tickets", value = events.size.toString() + "0+", modifier = Modifier.weight(1f))
                 MetricCard(title = "Check-ins", value = "71%", modifier = Modifier.weight(1f))
                 MetricCard(title = "Revenue", value = "K20000.00", modifier = Modifier.weight(1f))
             }
@@ -168,7 +156,7 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Active list of admin events
+            // Active list of admin events with delete option
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -176,8 +164,8 @@ fun AdminDashboardScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(sampleAdminEvents) { event ->
-                    AdminEventCard(event = event)
+                items(events) { event ->
+                    AdminEventCard(event = event, onDelete = { onDeleteEvent(event) })
                 }
             }
         }
@@ -215,12 +203,9 @@ fun MetricCard(title: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AdminEventCard(event: AdminEvent) {
-    val statusColor = when (event.status) {
-        "On sale" -> CampusAmber
-        "Scheduled" -> CampusNavy
-        else -> CampusGrey
-    }
+fun AdminEventCard(event: Event, onDelete: () -> Unit) {
+    val statusText = if (event.isPurchased) "On sale" else "Scheduled"
+    val statusColor = if (event.isPurchased) CampusAmber else CampusNavy
 
     Surface(
         modifier = Modifier
@@ -246,27 +231,42 @@ fun AdminEventCard(event: AdminEvent) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${event.date} • ${event.ticketsSold}",
+                    text = "${event.month} ${event.day} · ${event.time} • ${if (event.isPaid) event.price else "Free"}",
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 13.sp,
                     color = CampusGrey
                 )
             }
 
-            // Status Badge
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(statusColor.copy(alpha = 0.2f))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = event.status,
-                    fontFamily = FontFamily.SansSerif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    color = if (event.status == "On sale") CampusInk else statusColor
-                )
+                // Status Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(statusColor.copy(alpha = 0.2f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = statusText,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = if (statusText == "On sale") CampusInk else statusColor
+                    )
+                }
+
+                // Delete Button
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Event",
+                        tint = Color(0xFFD9534F),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }

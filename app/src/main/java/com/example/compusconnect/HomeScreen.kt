@@ -21,13 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.compusconnect.ui.theme.CompusConnectTheme
 
 // ==========================================
@@ -60,6 +63,90 @@ enum class EventCategory(val color: Color, val label: String) {
 /**
  * Data class representing an event on campus.
  */
+/**
+ * Poster artwork visual configuration option for campus events.
+ */
+data class PosterOption(
+    val id: String,
+    val name: String,
+    val colors: List<Color>
+)
+
+val campusPosterOptions = listOf(
+    PosterOption(
+        id = "poster_1",
+        name = "Neon Festival",
+        colors = listOf(Color(0xFFF2A93B), Color(0xFF132A4C), Color(0xFFE63946))
+    ),
+    PosterOption(
+        id = "poster_2",
+        name = "Tech Innovation",
+        colors = listOf(Color(0xFF132A4C), Color(0xFF2F5A44), Color(0xFF457B9D))
+    ),
+    PosterOption(
+        id = "poster_3",
+        name = "Stadium Championship",
+        colors = listOf(Color(0xFF1D3557), Color(0xFFE63946), Color(0xFFF1FAEE))
+    ),
+    PosterOption(
+        id = "poster_4",
+        name = "Campus Arts & Poetry",
+        colors = listOf(Color(0xFF2F5A44), Color(0xFFF4A261), Color(0xFF264653))
+    )
+)
+
+/**
+ * Renders the event's poster/artwork visual with a subtle gradient overlay for readability.
+ */
+@Composable
+fun EventPosterVisual(
+    posterUrl: String,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
+    val isMediaUri = posterUrl.startsWith("http://") || 
+                     posterUrl.startsWith("https://") || 
+                     posterUrl.startsWith("content://") || 
+                     posterUrl.startsWith("file://")
+
+    Box(modifier = modifier) {
+        if (isMediaUri) {
+            AsyncImage(
+                model = posterUrl,
+                contentDescription = "Event Poster",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            val poster = campusPosterOptions.find { it.id == posterUrl } ?: campusPosterOptions.first()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = poster.colors
+                        )
+                    )
+            )
+        }
+
+        // Dark gradient overlay for text readability
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                    )
+                )
+        )
+        content()
+    }
+}
+
+/**
+ * Data class representing an event on campus.
+ */
 data class Event(
     val id: String,
     val title: String,
@@ -72,7 +159,8 @@ data class Event(
     val isPaid: Boolean,
     val price: String,
     val isSaved: Boolean = false,
-    val isPurchased: Boolean = false
+    val isPurchased: Boolean = false,
+    val posterUrl: String = "poster_1"
 )
 
 // Sample events data list with category date-block colors
@@ -89,7 +177,8 @@ val sampleEvents = listOf(
         isPaid = true,
         price = "K5000.00",
         isSaved = true,
-        isPurchased = true
+        isPurchased = true,
+        posterUrl = "poster_1"
     ),
     Event(
         id = "2",
@@ -103,7 +192,8 @@ val sampleEvents = listOf(
         isPaid = false,
         price = "",
         isSaved = true,
-        isPurchased = false
+        isPurchased = false,
+        posterUrl = "poster_2"
     ),
     Event(
         id = "3",
@@ -117,7 +207,8 @@ val sampleEvents = listOf(
         isPaid = true,
         price = "K2000.00",
         isSaved = false,
-        isPurchased = true
+        isPurchased = true,
+        posterUrl = "poster_3"
     ),
     Event(
         id = "4",
@@ -131,7 +222,8 @@ val sampleEvents = listOf(
         isPaid = false,
         price = "",
         isSaved = false,
-        isPurchased = false
+        isPurchased = false,
+        posterUrl = "poster_4"
     )
 )
 

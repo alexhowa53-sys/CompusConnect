@@ -10,12 +10,14 @@ sealed class Screen {
     object EventDetails : Screen()
     object TicketConfirmation : Screen()
     object AdminDashboard : Screen()
+    object CreateEvent : Screen()
 }
 
 @Composable
 fun MainApp() {
     var currentRoute by remember { mutableStateOf<Screen>(Screen.Splash) }
     var studentTab by remember { mutableStateOf(0) } // 0: Home, 1: Search, 2: Tickets, 3: Profile
+    var userSession by remember { mutableStateOf(UserSession()) }
 
     // Hoisted shared events state across Home, Search, Details, and Tickets
     var events by remember {
@@ -109,14 +111,16 @@ fun MainApp() {
             }
             is Screen.Login -> {
                 LoginAuthScreen(
-                    onLoginSuccess = { isAdmin ->
-                        if (isAdmin) {
+                    onLoginSuccess = { session ->
+                        userSession = session
+                        if (session.role == UserRole.ADMIN) {
                             currentRoute = Screen.AdminDashboard
                         } else {
                             currentRoute = Screen.MainStudent
                             studentTab = 0
                         }
-                    }
+                    },
+                    onBackClick = { currentRoute = Screen.MainStudent }
                 )
             }
             is Screen.MainStudent -> {
@@ -154,12 +158,17 @@ fun MainApp() {
                         )
                         3 -> ProfileScreen(
                             currentScreen = studentTab,
+                            userSession = userSession,
                             onNavigate = { studentTab = it },
+                            onLoginClick = { currentRoute = Screen.Login },
+                            onSignUpClick = { currentRoute = Screen.Login },
                             onSwitchToAdminView = {
                                 currentRoute = Screen.AdminDashboard
                             },
                             onLogout = {
-                                currentRoute = Screen.Login
+                                userSession = UserSession()
+                                currentRoute = Screen.MainStudent
+                                studentTab = 0
                             }
                         )
                     }
@@ -190,12 +199,25 @@ fun MainApp() {
             }
             is Screen.AdminDashboard -> {
                 AdminDashboardScreen(
+                    events = events,
                     onCreateEventClick = {
-                        // Create event action
+                        currentRoute = Screen.CreateEvent
                     },
                     onSwitchToStudentView = {
                         currentRoute = Screen.MainStudent
                         studentTab = 0
+                    },
+                    onDeleteEvent = { eventToDelete ->
+                        events = events.filter { it.id != eventToDelete.id }
+                    }
+                )
+            }
+            is Screen.CreateEvent -> {
+                CreateEventScreen(
+                    onBackClick = { currentRoute = Screen.AdminDashboard },
+                    onPublishEvent = { newEvent ->
+                        events = listOf(newEvent) + events
+                        currentRoute = Screen.AdminDashboard
                     }
                 )
             }

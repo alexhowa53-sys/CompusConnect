@@ -7,7 +7,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,18 +25,35 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.compusconnect.ui.theme.CompusConnectTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginAuthScreen(
-    onLoginSuccess: (isAdmin: Boolean) -> Unit = {}
+    onLoginSuccess: (UserSession) -> Unit = {},
+    onBackClick: () -> Unit = {}
 ) {
     var isLoginTab by remember { mutableStateOf(true) }
-    var isAdminSelected by remember { mutableStateOf(false) } // false = Student, true = Administrator (used only when signing up)
-    var email by remember { mutableStateOf("alexhowa53@gmail.com") }
-    var password by remember { mutableStateOf("••••••••") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        containerColor = CampusCream
+        containerColor = CampusCream,
+        topBar = {
+            TopAppBar(
+                title = { Text("") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = CampusNavy
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CampusCream)
+            )
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -44,7 +63,7 @@ fun LoginAuthScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Branding Top Header
             Text(
@@ -81,7 +100,7 @@ fun LoginAuthScreen(
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(19.dp))
                         .background(if (isLoginTab) CampusNavy else Color.Transparent)
-                        .clickable { isLoginTab = true },
+                        .clickable { isLoginTab = true; errorMessage = null },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -98,7 +117,7 @@ fun LoginAuthScreen(
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(19.dp))
                         .background(if (!isLoginTab) CampusNavy else Color.Transparent)
-                        .clickable { isLoginTab = false },
+                        .clickable { isLoginTab = false; errorMessage = null },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -113,60 +132,35 @@ fun LoginAuthScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Account type selector (Student / Administrator) - Shown ONLY during Sign up
-            if (!isLoginTab) {
-                Text(
-                    text = "Account Type",
-                    fontFamily = FontFamily.SansSerif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    color = CampusNavy,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            if (errorMessage != null) {
+                Surface(
+                    color = Color(0xFFF8D7DA),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedButton(
-                        onClick = { isAdminSelected = false },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (!isAdminSelected) CampusNavy else Color.White,
-                            contentColor = if (!isAdminSelected) CampusCream else CampusNavy
-                        )
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Student", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    OutlinedButton(
-                        onClick = { isAdminSelected = true },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isAdminSelected) CampusNavy else Color.White,
-                            contentColor = if (isAdminSelected) CampusCream else CampusNavy
+                        Icon(imageVector = Icons.Default.Error, contentDescription = null, tint = Color(0xFF721C24))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = errorMessage!!,
+                            color = Color(0xFF721C24),
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 13.sp
                         )
-                    ) {
-                        Text(text = "Administrator", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Email input
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { email = it; errorMessage = null },
                 label = { Text("Campus Email") },
+                placeholder = { Text("e.g. alex@university.edu or admin@compusconnect.com") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = CampusNavy) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -182,8 +176,9 @@ fun LoginAuthScreen(
             // Password input
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { password = it; errorMessage = null },
                 label = { Text("Password") },
+                placeholder = { Text("••••••••") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = CampusNavy) },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -234,14 +229,27 @@ fun LoginAuthScreen(
             // Action Button (Log in / Create Account)
             Button(
                 onClick = {
-                    val isAdmin = if (isLoginTab) {
-                        // System decides role based on email during login (e.g., contains 'admin')
-                        email.contains("admin", ignoreCase = true)
+                    if (isLoginTab) {
+                        val session = attemptLogin(email, password)
+                        if (session == null) {
+                            errorMessage = "Invalid email or password (Test admin: admin@compusconnect.com / admin123)"
+                        } else {
+                            onLoginSuccess(session)
+                        }
                     } else {
-                        // User chooses role when signing up
-                        isAdminSelected
+                        if (email.isBlank() || password.isBlank()) {
+                            errorMessage = "Please enter email and password"
+                        } else {
+                            // New sign-ups default to Student role; backend handles admin accounts securely
+                            val session = UserSession(
+                                isLoggedIn = true,
+                                name = email.substringBefore("@").replaceFirstChar { it.uppercase() },
+                                email = email.trim(),
+                                role = UserRole.STUDENT
+                            )
+                            onLoginSuccess(session)
+                        }
                     }
-                    onLoginSuccess(isAdmin)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = CampusAmber),
                 shape = RoundedCornerShape(24.dp),

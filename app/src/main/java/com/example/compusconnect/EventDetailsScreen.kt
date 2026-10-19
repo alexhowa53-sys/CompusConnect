@@ -94,16 +94,12 @@ fun EventDetailsScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Image header banner with gradient & action buttons
-            Box(
+            // Image header banner with poster artwork & action buttons
+            EventPosterVisual(
+                posterUrl = event.posterUrl,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(event.category.color, CampusNavy)
-                        )
-                    )
+                    .height(280.dp)
             ) {
                 // Top Action Bar
                 Row(
