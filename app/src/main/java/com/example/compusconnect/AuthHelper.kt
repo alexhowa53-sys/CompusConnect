@@ -1,10 +1,9 @@
 package com.example.compusconnect
 
-// ---------------------------------------------------------------------
-// TEMPORARY login check, used until Firebase Authentication is wired up.
-// Replace the body of this function later with a real Firebase sign-in
-// call that looks up the user's role from your Firestore "users" collection.
-// ---------------------------------------------------------------------
+enum class AuthStep {
+    FORM,
+    OTP
+}
 
 /**
  * Checks the given credentials and returns a UserSession describing who

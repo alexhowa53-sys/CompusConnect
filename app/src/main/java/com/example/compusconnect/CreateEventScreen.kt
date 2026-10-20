@@ -175,7 +175,7 @@ fun CreateEventScreen(
                     text = "Upload from your phone gallery or provide an image URL",
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 13.sp,
-                    color = CampusGrey
+                    color = CampusNavy.copy(alpha = 0.75f)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -251,13 +251,16 @@ fun CreateEventScreen(
                     value = posterUrlInput,
                     onValueChange = { posterUrlInput = it },
                     label = { Text("Or Paste Poster Image URL") },
-                    placeholder = { Text("https://images.unsplash.com/...") },
+                    placeholder = { Text("https://images.unsplash.com/...", color = CampusNavy.copy(alpha = 0.6f)) },
+                    textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = CampusNavy,
                         unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                         focusedLabelColor = CampusNavy,
+                        focusedTextColor = CampusInk,
+                        unfocusedTextColor = CampusInk,
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White
                     ),
@@ -269,7 +272,7 @@ fun CreateEventScreen(
                     text = "Or choose professional preset artwork:",
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 12.sp,
-                    color = CampusGrey
+                    color = CampusNavy.copy(alpha = 0.75f)
                 )
 
                 // Quick Presets
@@ -318,13 +321,16 @@ fun CreateEventScreen(
                 value = title,
                 onValueChange = { title = it; errorMessage = null },
                 label = { Text("Event Title") },
-                placeholder = { Text("e.g. Spring Music Fest") },
+                placeholder = { Text("e.g. Spring Music Fest", color = CampusNavy.copy(alpha = 0.6f)) },
+                textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = CampusNavy,
                     unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                     focusedLabelColor = CampusNavy,
+                    focusedTextColor = CampusInk,
+                    unfocusedTextColor = CampusInk,
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White
                 ),
@@ -341,14 +347,17 @@ fun CreateEventScreen(
                     value = day,
                     onValueChange = { day = it },
                     label = { Text("Day") },
-                    placeholder = { Text("14") },
+                    placeholder = { Text("14", color = CampusNavy.copy(alpha = 0.6f)) },
+                    textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = CampusNavy,
                         unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                         focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = CampusInk,
+                        unfocusedTextColor = CampusInk
                     ),
                     modifier = Modifier.width(80.dp)
                 )
@@ -356,14 +365,17 @@ fun CreateEventScreen(
                     value = month,
                     onValueChange = { month = it },
                     label = { Text("Month") },
-                    placeholder = { Text("OCT") },
+                    placeholder = { Text("OCT", color = CampusNavy.copy(alpha = 0.6f)) },
+                    textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = CampusNavy,
                         unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                         focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = CampusInk,
+                        unfocusedTextColor = CampusInk
                     ),
                     modifier = Modifier.width(96.dp)
                 )
@@ -371,7 +383,8 @@ fun CreateEventScreen(
                     value = time,
                     onValueChange = { time = it },
                     label = { Text("Time") },
-                    placeholder = { Text("7:00 PM") },
+                    placeholder = { Text("7:00 PM", color = CampusNavy.copy(alpha = 0.6f)) },
+                    textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -379,7 +392,9 @@ fun CreateEventScreen(
                         unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                         focusedLabelColor = CampusNavy,
                         focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = CampusInk,
+                        unfocusedTextColor = CampusInk
                     ),
                     modifier = Modifier.weight(1f)
                 )
@@ -390,7 +405,8 @@ fun CreateEventScreen(
                 value = location,
                 onValueChange = { location = it; errorMessage = null },
                 label = { Text("Location / Venue") },
-                placeholder = { Text("e.g. Great Hall, Sports Complex") },
+                placeholder = { Text("e.g. Great Hall, Sports Complex", color = CampusNavy.copy(alpha = 0.6f)) },
+                textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -398,7 +414,9 @@ fun CreateEventScreen(
                     unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                     focusedLabelColor = CampusNavy,
                     focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = CampusInk,
+                    unfocusedTextColor = CampusInk
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -487,7 +505,8 @@ fun CreateEventScreen(
                         value = price,
                         onValueChange = { price = it },
                         label = { Text("Ticket Price") },
-                        placeholder = { Text("K5000.00") },
+                        placeholder = { Text("K5000.00", color = CampusNavy.copy(alpha = 0.6f)) },
+                        textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -495,7 +514,9 @@ fun CreateEventScreen(
                             unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                             focusedLabelColor = CampusNavy,
                             focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
+                            unfocusedContainerColor = Color.White,
+                            focusedTextColor = CampusInk,
+                            unfocusedTextColor = CampusInk
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -507,7 +528,8 @@ fun CreateEventScreen(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Description & Details") },
-                placeholder = { Text("Describe what attendees can expect, schedule, special guests...") },
+                placeholder = { Text("Describe what attendees can expect, schedule, special guests...", color = CampusNavy.copy(alpha = 0.6f)) },
+                textStyle = LocalTextStyle.current.copy(color = CampusInk, fontWeight = FontWeight.Medium),
                 minLines = 4,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -515,7 +537,9 @@ fun CreateEventScreen(
                     unfocusedBorderColor = CampusGrey.copy(alpha = 0.5f),
                     focusedLabelColor = CampusNavy,
                     focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = CampusInk,
+                    unfocusedTextColor = CampusInk
                 ),
                 modifier = Modifier.fillMaxWidth()
             )

@@ -2,6 +2,9 @@ package com.example.compusconnect
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 sealed class Screen {
     object Splash : Screen()
@@ -18,6 +21,7 @@ fun MainApp() {
     var currentRoute by remember { mutableStateOf<Screen>(Screen.Splash) }
     var studentTab by remember { mutableStateOf(0) } // 0: Home, 1: Search, 2: Tickets, 3: Profile
     var userSession by remember { mutableStateOf(UserSession()) }
+    val repository = remember { CampusRepository() }
 
     // Hoisted shared events state across Home, Search, Details, and Tickets
     var events by remember {
@@ -81,6 +85,14 @@ fun MainApp() {
                 )
             )
         )
+    }
+
+    // Fetch events from Firebase Firestore on startup
+    LaunchedEffect(Unit) {
+        val remoteEvents = repository.fetchEvents()
+        if (remoteEvents.isNotEmpty()) {
+            events = remoteEvents
+        }
     }
 
     var selectedEventId by remember { mutableStateOf("1") }
@@ -209,6 +221,9 @@ fun MainApp() {
                     },
                     onDeleteEvent = { eventToDelete ->
                         events = events.filter { it.id != eventToDelete.id }
+                        CoroutineScope(Dispatchers.IO).launch {
+                            repository.deleteEvent(eventToDelete.id)
+                        }
                     }
                 )
             }
@@ -218,6 +233,9 @@ fun MainApp() {
                     onPublishEvent = { newEvent ->
                         events = listOf(newEvent) + events
                         currentRoute = Screen.AdminDashboard
+                        CoroutineScope(Dispatchers.IO).launch {
+                            repository.addEvent(newEvent)
+                        }
                     }
                 )
             }
