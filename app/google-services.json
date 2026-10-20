@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "258409291146",
+    "project_id": "compusconnect-e1f11",
+    "storage_bucket": "compusconnect-e1f11.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258409291146:android:c74c0c9780a61aa663bc73",
+        "android_client_info": {
+          "package_name": "com.example.compusconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMMVXKUDtYutPdyGlNDMjSNLjKvDyjCOA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
