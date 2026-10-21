@@ -49,7 +49,7 @@ class CampusRepository {
                 .build()
             user.updateProfile(profileUpdates).await()
 
-            // Create Firestore user document with role = "student" (Admins cannot be created via public sign up)
+            // Create Firestore user document with role = "student"
             val userData = mapOf(
                 "name" to trimmedName,
                 "email" to trimmedEmail,
@@ -69,6 +69,81 @@ class CampusRepository {
         } catch (e: Exception) {
             Log.e("CampusRepo", "Sign up failed: ${e.message}", e)
             Result.failure(e)
+        }
+    }
+
+    suspend fun buyTicket(uid: String, event: Event, referenceCode: String): Result<Boolean> {
+        return try {
+            val ticketId = System.currentTimeMillis().toString()
+            val ticketData = mapOf(
+                "eventId" to event.id,
+                "eventTitle" to event.title,
+                "price" to event.price,
+                "purchasedAt" to System.currentTimeMillis(),
+                "referenceCode" to referenceCode
+            )
+            
+            db.runTransaction { transaction ->
+                val eventRef = db.collection("events").document(event.id)
+                val snapshot = transaction.get(eventRef)
+                val currentSold = snapshot.getLong("ticketsSold") ?: 0L
+                transaction.update(eventRef, "ticketsSold", currentSold + 1)
+                
+                val ticketRef = db.collection("users").document(uid).collection("tickets").document(ticketId)
+                transaction.set(ticketRef, ticketData)
+            }.await()
+
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Buy ticket failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun saveEvent(uid: String, event: Event): Result<Boolean> {
+        return try {
+            val eventMap = mapOf(
+                "eventId" to event.id,
+                "title" to event.title,
+                "day" to event.day,
+                "month" to event.month,
+                "time" to event.time,
+                "location" to event.location,
+                "savedAt" to System.currentTimeMillis()
+            )
+            db.collection("users").document(uid).collection("saved").document(event.id).set(eventMap).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Save event failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun unsaveEvent(uid: String, eventId: String): Result<Boolean> {
+        return try {
+            db.collection("users").document(uid).collection("saved").document(eventId).delete().await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Unsave event failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchUserPurchasedEventIds(uid: String): List<String> {
+        return try {
+            val snapshot = db.collection("users").document(uid).collection("tickets").get().await()
+            snapshot.documents.mapNotNull { it.getString("eventId") }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun fetchUserSavedEventIds(uid: String): List<String> {
+        return try {
+            val snapshot = db.collection("users").document(uid).collection("saved").get().await()
+            snapshot.documents.mapNotNull { it.getString("eventId") }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -113,7 +188,8 @@ class CampusRepository {
                 "category" to event.category.name,
                 "isPaid" to event.isPaid,
                 "price" to event.price,
-                "posterUrl" to event.posterUrl
+                "posterUrl" to event.posterUrl,
+                "ticketsSold" to 0
             )
             db.collection("events").document(event.id).set(eventMap).await()
             true
