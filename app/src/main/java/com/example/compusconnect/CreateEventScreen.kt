@@ -26,19 +26,21 @@ import com.example.compusconnect.ui.theme.CompusConnectTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateEventScreen(
+    eventToEdit: Event? = null,
     onBackClick: () -> Unit = {},
-    onPublishEvent: (Event) -> Unit = {}
+    onPublishEvent: (Event) -> Unit = {},
+    onUpdateEvent: (Event) -> Unit = {}
 ) {
-    var title by remember { mutableStateOf("") }
-    var day by remember { mutableStateOf("25") }
-    var month by remember { mutableStateOf("OCT") }
-    var time by remember { mutableStateOf("7:00 PM") }
-    var location by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(EventCategory.MUSIC) }
-    var isPaid by remember { mutableStateOf(false) }
-    var price by remember { mutableStateOf("K5000.00") }
-    var posterUrlInput by remember { mutableStateOf("https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80") }
+    var title by remember { mutableStateOf(eventToEdit?.title ?: "") }
+    var day by remember { mutableStateOf(eventToEdit?.day ?: "25") }
+    var month by remember { mutableStateOf(eventToEdit?.month ?: "OCT") }
+    var time by remember { mutableStateOf(eventToEdit?.time ?: "7:00 PM") }
+    var location by remember { mutableStateOf(eventToEdit?.location ?: "") }
+    var description by remember { mutableStateOf(eventToEdit?.description ?: "") }
+    var selectedCategory by remember { mutableStateOf(eventToEdit?.category ?: EventCategory.MUSIC) }
+    var isPaid by remember { mutableStateOf(eventToEdit?.isPaid ?: false) }
+    var price by remember { mutableStateOf(eventToEdit?.price ?: "K5000.00") }
+    var posterUrlInput by remember { mutableStateOf(eventToEdit?.posterUrl ?: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Launcher to pick an image from phone gallery
@@ -56,7 +58,7 @@ fun CreateEventScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Create Event",
+                        text = if (eventToEdit == null) "Create Event" else "Edit Event",
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                         color = CampusCream
@@ -95,8 +97,12 @@ fun CreateEventScreen(
                                 errorMessage = "Please enter an event location"
                                 return@Button
                             }
-                            val newEvent = Event(
-                                id = System.currentTimeMillis().toString(),
+                            val eventId = eventToEdit?.id ?: System.currentTimeMillis().toString()
+                            val ownerUid = eventToEdit?.ownerUid ?: ""
+                            val ticketsSold = eventToEdit?.ticketsSold ?: 0L
+
+                            val targetEvent = Event(
+                                id = eventId,
                                 title = title.trim(),
                                 day = day.trim().ifEmpty { "25" },
                                 month = month.trim().uppercase().ifEmpty { "OCT" },
@@ -106,11 +112,17 @@ fun CreateEventScreen(
                                 category = selectedCategory,
                                 isPaid = isPaid,
                                 price = if (isPaid) price.trim().ifEmpty { "K5000.00" } else "",
-                                isSaved = false,
-                                isPurchased = false,
-                                posterUrl = posterUrlInput.trim().ifEmpty { "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80" }
+                                isSaved = eventToEdit?.isSaved ?: false,
+                                isPurchased = eventToEdit?.isPurchased ?: false,
+                                posterUrl = posterUrlInput.trim().ifEmpty { "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80" },
+                                ownerUid = ownerUid,
+                                ticketsSold = ticketsSold
                             )
-                            onPublishEvent(newEvent)
+                            if (eventToEdit == null) {
+                                onPublishEvent(targetEvent)
+                            } else {
+                                onUpdateEvent(targetEvent)
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = CampusAmber),
                         shape = RoundedCornerShape(24.dp),
@@ -121,7 +133,7 @@ fun CreateEventScreen(
                         Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = CampusInk)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Publish Event",
+                            text = if (eventToEdit == null) "Publish Event" else "Save Changes",
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
@@ -266,52 +278,6 @@ fun CreateEventScreen(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Or choose professional preset artwork:",
-                    fontFamily = FontFamily.SansSerif,
-                    fontSize = 12.sp,
-                    color = CampusNavy.copy(alpha = 0.75f)
-                )
-
-                // Quick Presets
-                val presetPosters = listOf(
-                    "Concert" to "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80",
-                    "Tech Fair" to "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80",
-                    "Stadium" to "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=800&q=80",
-                    "Arts" to "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=800&q=80"
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    presetPosters.forEach { (name, url) ->
-                        val isSelected = posterUrlInput == url
-                        Box(modifier = Modifier.weight(1f)) {
-                            OutlinedButton(
-                                onClick = { posterUrlInput = url },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(38.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(2.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) CampusNavy else Color.White,
-                                    contentColor = if (isSelected) CampusCream else CampusNavy
-                                )
-                            ) {
-                                Text(
-                                    text = name,
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                }
             }
 
             HorizontalDivider(color = CampusLightBeige)
@@ -523,7 +489,7 @@ fun CreateEventScreen(
                 }
             }
 
-            // 7. Description with clear placeholder
+            // 7. Description
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },

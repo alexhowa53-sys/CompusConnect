@@ -1,5 +1,6 @@
 package com.example.compusconnect
 
+import android.net.Uri
 import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.*
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ fun MainApp() {
     var currentRoute by remember { mutableStateOf<Screen>(Screen.Splash) }
     var studentTab by remember { mutableStateOf(0) } // 0: Home, 1: Search, 2: Tickets, 3: Profile
     var userSession by remember { mutableStateOf(UserSession()) }
+    var eventBeingEdited by remember { mutableStateOf<Event?>(null) }
     val repository = remember { CampusRepository() }
 
     // Hoisted shared events state across Home, Search, Details, and Tickets
@@ -38,8 +40,8 @@ fun MainApp() {
                     category = EventCategory.MUSIC,
                     isPaid = true,
                     price = "K5000.00",
-                    isSaved = true,
-                    isPurchased = true
+                    isSaved = false,
+                    isPurchased = false
                 ),
                 Event(
                     id = "2",
@@ -52,34 +54,6 @@ fun MainApp() {
                     category = EventCategory.CAREER,
                     isPaid = false,
                     price = "",
-                    isSaved = true,
-                    isPurchased = false
-                ),
-                Event(
-                    id = "3",
-                    title = "UNIMA Football Finals",
-                    day = "18",
-                    month = "OCT",
-                    time = "4:30 PM",
-                    location = "Sports Complex",
-                    description = "Come support your hall in the championship match!",
-                    category = EventCategory.SPORTS,
-                    isPaid = true,
-                    price = "K2000.00",
-                    isSaved = false,
-                    isPurchased = true
-                ),
-                Event(
-                    id = "4",
-                    title = "Poetry & Spoken Word Night",
-                    day = "21",
-                    month = "OCT",
-                    time = "6:00 PM",
-                    location = "Room A",
-                    description = "An evening of powerful performances and acoustic interludes.",
-                    category = EventCategory.COMMUNITY,
-                    isPaid = false,
-                    price = "",
                     isSaved = false,
                     isPurchased = false
                 )
@@ -87,11 +61,22 @@ fun MainApp() {
         )
     }
 
-    // Fetch events from Firebase Firestore on startup
-    LaunchedEffect(Unit) {
+    // Fetch events and user-specific saved/purchased tickets from Firestore on startup or login
+    LaunchedEffect(userSession.uid) {
         val remoteEvents = repository.fetchEvents()
         if (remoteEvents.isNotEmpty()) {
             events = remoteEvents
+        }
+
+        if (userSession.isLoggedIn && userSession.uid.isNotBlank()) {
+            val savedIds = repository.fetchUserSavedEventIds(userSession.uid)
+            val ticketIds = repository.fetchUserTicketEventIds(userSession.uid)
+            events = events.map { ev ->
+                ev.copy(
+                    isSaved = savedIds.contains(ev.id),
+                    isPurchased = ticketIds.contains(ev.id)
+                )
+            }
         }
     }
 
@@ -99,8 +84,18 @@ fun MainApp() {
     val selectedEvent = events.find { it.id == selectedEventId } ?: events.first()
 
     val onToggleSave: (Event) -> Unit = { eventToToggle ->
+        val newIsSaved = !eventToToggle.isSaved
         events = events.map { ev ->
-            if (ev.id == eventToToggle.id) ev.copy(isSaved = !ev.isSaved) else ev
+            if (ev.id == eventToToggle.id) ev.copy(isSaved = newIsSaved) else ev
+        }
+        if (userSession.isLoggedIn && userSession.uid.isNotBlank()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                if (newIsSaved) {
+                    repository.saveEvent(userSession.uid, eventToToggle)
+                } else {
+                    repository.unsaveEvent(userSession.uid, eventToToggle.id)
+                }
+            }
         }
     }
 
@@ -110,6 +105,13 @@ fun MainApp() {
         }
         selectedEventId = eventToBuy.id
         currentRoute = Screen.TicketConfirmation
+
+        if (userSession.isLoggedIn && userSession.uid.isNotBlank()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                repository.purchaseTicket(userSession.uid, eventToBuy)
+                repository.saveEvent(userSession.uid, eventToBuy)
+            }
+        }
     }
 
     Crossfade(targetState = currentRoute, label = "ScreenTransition") { route ->
@@ -211,8 +213,14 @@ fun MainApp() {
             }
             is Screen.AdminDashboard -> {
                 AdminDashboardScreen(
+                    userSession = userSession,
                     events = events,
                     onCreateEventClick = {
+                        eventBeingEdited = null
+                        currentRoute = Screen.CreateEvent
+                    },
+                    onEditEventClick = { eventToEdit ->
+                        eventBeingEdited = eventToEdit
                         currentRoute = Screen.CreateEvent
                     },
                     onSwitchToStudentView = {
@@ -229,13 +237,37 @@ fun MainApp() {
             }
             is Screen.CreateEvent -> {
                 CreateEventScreen(
+                    eventToEdit = eventBeingEdited,
                     onBackClick = { currentRoute = Screen.AdminDashboard },
                     onPublishEvent = { newEvent ->
-                        events = listOf(newEvent) + events
-                        currentRoute = Screen.AdminDashboard
                         CoroutineScope(Dispatchers.IO).launch {
-                            repository.addEvent(newEvent)
+                            var finalPosterUrl = newEvent.posterUrl
+                            if (finalPosterUrl.startsWith("content://")) {
+                                val uploadResult = repository.uploadPosterImage(Uri.parse(finalPosterUrl))
+                                uploadResult.onSuccess { downloadUrl ->
+                                    finalPosterUrl = downloadUrl
+                                }
+                            }
+                            val eventToSave = newEvent.copy(posterUrl = finalPosterUrl)
+                            events = listOf(eventToSave) + events
+                            repository.addEvent(eventToSave, userSession.uid)
                         }
+                        currentRoute = Screen.AdminDashboard
+                    },
+                    onUpdateEvent = { updatedEvent ->
+                        CoroutineScope(Dispatchers.IO).launch {
+                            var finalPosterUrl = updatedEvent.posterUrl
+                            if (finalPosterUrl.startsWith("content://")) {
+                                val uploadResult = repository.uploadPosterImage(Uri.parse(finalPosterUrl))
+                                uploadResult.onSuccess { downloadUrl ->
+                                    finalPosterUrl = downloadUrl
+                                }
+                            }
+                            val eventToUpdate = updatedEvent.copy(posterUrl = finalPosterUrl)
+                            events = events.map { if (it.id == eventToUpdate.id) eventToUpdate else it }
+                            repository.updateEvent(eventToUpdate)
+                        }
+                        currentRoute = Screen.AdminDashboard
                     }
                 )
             }

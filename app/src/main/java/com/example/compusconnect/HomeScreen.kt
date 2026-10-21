@@ -160,7 +160,9 @@ data class Event(
     val price: String,
     val isSaved: Boolean = false,
     val isPurchased: Boolean = false,
-    val posterUrl: String = "poster_1"
+    val posterUrl: String = "poster_1",
+    val ownerUid: String = "",
+    val ticketsSold: Long = 0L
 )
 
 // Sample events data list with category date-block colors

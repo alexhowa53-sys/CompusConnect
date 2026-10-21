@@ -1,14 +1,17 @@
 package com.example.compusconnect
 
+import android.net.Uri
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 
 class CampusRepository {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
 
     suspend fun signIn(email: String, password: String): Result<UserSession> {
         return try {
@@ -72,81 +75,6 @@ class CampusRepository {
         }
     }
 
-    suspend fun buyTicket(uid: String, event: Event, referenceCode: String): Result<Boolean> {
-        return try {
-            val ticketId = System.currentTimeMillis().toString()
-            val ticketData = mapOf(
-                "eventId" to event.id,
-                "eventTitle" to event.title,
-                "price" to event.price,
-                "purchasedAt" to System.currentTimeMillis(),
-                "referenceCode" to referenceCode
-            )
-            
-            db.runTransaction { transaction ->
-                val eventRef = db.collection("events").document(event.id)
-                val snapshot = transaction.get(eventRef)
-                val currentSold = snapshot.getLong("ticketsSold") ?: 0L
-                transaction.update(eventRef, "ticketsSold", currentSold + 1)
-                
-                val ticketRef = db.collection("users").document(uid).collection("tickets").document(ticketId)
-                transaction.set(ticketRef, ticketData)
-            }.await()
-
-            Result.success(true)
-        } catch (e: Exception) {
-            Log.e("CampusRepo", "Buy ticket failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun saveEvent(uid: String, event: Event): Result<Boolean> {
-        return try {
-            val eventMap = mapOf(
-                "eventId" to event.id,
-                "title" to event.title,
-                "day" to event.day,
-                "month" to event.month,
-                "time" to event.time,
-                "location" to event.location,
-                "savedAt" to System.currentTimeMillis()
-            )
-            db.collection("users").document(uid).collection("saved").document(event.id).set(eventMap).await()
-            Result.success(true)
-        } catch (e: Exception) {
-            Log.e("CampusRepo", "Save event failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun unsaveEvent(uid: String, eventId: String): Result<Boolean> {
-        return try {
-            db.collection("users").document(uid).collection("saved").document(eventId).delete().await()
-            Result.success(true)
-        } catch (e: Exception) {
-            Log.e("CampusRepo", "Unsave event failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun fetchUserPurchasedEventIds(uid: String): List<String> {
-        return try {
-            val snapshot = db.collection("users").document(uid).collection("tickets").get().await()
-            snapshot.documents.mapNotNull { it.getString("eventId") }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    suspend fun fetchUserSavedEventIds(uid: String): List<String> {
-        return try {
-            val snapshot = db.collection("users").document(uid).collection("saved").get().await()
-            snapshot.documents.mapNotNull { it.getString("eventId") }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
     suspend fun fetchEvents(): List<Event> {
         return try {
             val snapshot = db.collection("events").get().await()
@@ -166,7 +94,9 @@ class CampusRepository {
                         category = try { EventCategory.valueOf(data["category"] as? String ?: "MUSIC") } catch (e: Exception) { EventCategory.MUSIC },
                         isPaid = data["isPaid"] as? Boolean ?: false,
                         price = data["price"] as? String ?: "",
-                        posterUrl = data["posterUrl"] as? String ?: ""
+                        posterUrl = data["posterUrl"] as? String ?: "",
+                        ownerUid = data["ownerUid"] as? String ?: "",
+                        ticketsSold = data["ticketsSold"] as? Long ?: 0L
                     )
                 }
             }
@@ -176,7 +106,19 @@ class CampusRepository {
         }
     }
 
-    suspend fun addEvent(event: Event): Boolean {
+    suspend fun uploadPosterImage(imageUri: Uri): Result<String> {
+        return try {
+            val posterRef = storage.reference.child("event_posters/${System.currentTimeMillis()}.jpg")
+            posterRef.putFile(imageUri).await()
+            val downloadUrl = posterRef.downloadUrl.await().toString()
+            Result.success(downloadUrl)
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Upload poster image failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addEvent(event: Event, ownerUid: String): Boolean {
         return try {
             val eventMap = mapOf(
                 "title" to event.title,
@@ -189,12 +131,35 @@ class CampusRepository {
                 "isPaid" to event.isPaid,
                 "price" to event.price,
                 "posterUrl" to event.posterUrl,
-                "ticketsSold" to 0
+                "ownerUid" to ownerUid,
+                "ticketsSold" to 0L
             )
             db.collection("events").document(event.id).set(eventMap).await()
             true
         } catch (e: Exception) {
             Log.e("CampusRepo", "Add event failed", e)
+            false
+        }
+    }
+
+    suspend fun updateEvent(event: Event): Boolean {
+        return try {
+            val eventMap = mapOf(
+                "title" to event.title,
+                "day" to event.day,
+                "month" to event.month,
+                "time" to event.time,
+                "location" to event.location,
+                "description" to event.description,
+                "category" to event.category.name,
+                "isPaid" to event.isPaid,
+                "price" to event.price,
+                "posterUrl" to event.posterUrl
+            )
+            db.collection("events").document(event.id).update(eventMap).await()
+            true
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Update event failed", e)
             false
         }
     }
@@ -206,6 +171,90 @@ class CampusRepository {
         } catch (e: Exception) {
             Log.e("CampusRepo", "Delete event failed", e)
             false
+        }
+    }
+
+    suspend fun saveEvent(uid: String, event: Event): Boolean {
+        return try {
+            val eventMap = mapOf(
+                "id" to event.id,
+                "title" to event.title,
+                "day" to event.day,
+                "month" to event.month,
+                "time" to event.time,
+                "location" to event.location,
+                "description" to event.description,
+                "category" to event.category.name,
+                "isPaid" to event.isPaid,
+                "price" to event.price,
+                "posterUrl" to event.posterUrl,
+                "savedAt" to System.currentTimeMillis()
+            )
+            db.collection("users").document(uid).collection("saved").document(event.id).set(eventMap).await()
+            true
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Save event failed", e)
+            false
+        }
+    }
+
+    suspend fun unsaveEvent(uid: String, eventId: String): Boolean {
+        return try {
+            db.collection("users").document(uid).collection("saved").document(eventId).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Unsave event failed", e)
+            false
+        }
+    }
+
+    suspend fun fetchUserSavedEventIds(uid: String): Set<String> {
+        return try {
+            val snapshot = db.collection("users").document(uid).collection("saved").get().await()
+            snapshot.documents.map { it.id }.toSet()
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Fetch user saved event IDs failed", e)
+            emptySet()
+        }
+    }
+
+    suspend fun purchaseTicket(uid: String, event: Event): Result<String> {
+        return try {
+            val refCode = "CC-TKT-${(100000..999999).random()}"
+            val ticketId = db.collection("users").document(uid).collection("tickets").document().id
+            val ticketMap = mapOf(
+                "id" to ticketId,
+                "eventId" to event.id,
+                "eventTitle" to event.title,
+                "price" to event.price,
+                "referenceCode" to refCode,
+                "purchasedAt" to System.currentTimeMillis()
+            )
+
+            db.runTransaction { transaction ->
+                val eventRef = db.collection("events").document(event.id)
+                val snapshot = transaction.get(eventRef)
+                val currentSold = snapshot.getLong("ticketsSold") ?: 0L
+                transaction.update(eventRef, "ticketsSold", currentSold + 1)
+
+                val ticketRef = db.collection("users").document(uid).collection("tickets").document(ticketId)
+                transaction.set(ticketRef, ticketMap)
+            }.await()
+
+            Result.success(refCode)
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Purchase ticket failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchUserTicketEventIds(uid: String): Set<String> {
+        return try {
+            val snapshot = db.collection("users").document(uid).collection("tickets").get().await()
+            snapshot.documents.mapNotNull { it.getString("eventId") }.toSet()
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Fetch user ticket event IDs failed", e)
+            emptySet()
         }
     }
 }

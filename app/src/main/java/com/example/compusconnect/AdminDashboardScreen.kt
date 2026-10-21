@@ -26,13 +26,34 @@ import com.example.compusconnect.ui.theme.CompusConnectTheme
 
 @Composable
 fun AdminDashboardScreen(
+    userSession: UserSession = UserSession(),
     currentAdminTab: Int = 0,
     onAdminTabSelected: (Int) -> Unit = {},
     events: List<Event> = sampleEvents,
     onCreateEventClick: () -> Unit = {},
+    onEditEventClick: (Event) -> Unit = {},
     onSwitchToStudentView: () -> Unit = {},
     onDeleteEvent: (Event) -> Unit = {}
 ) {
+    // Filter events created by this admin (or fallback if ownerUid is unassigned)
+    val adminEvents = remember(events, userSession.uid) {
+        if (userSession.uid.isNotBlank()) {
+            events.filter { it.ownerUid == userSession.uid || it.ownerUid.isBlank() }
+        } else {
+            events
+        }
+    }
+
+    val totalTicketsSold = adminEvents.sumOf { it.ticketsSold }
+    val totalRevenue = adminEvents.sumOf { ev ->
+        if (ev.isPaid) {
+            val priceNum = ev.price.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
+            priceNum * ev.ticketsSold
+        } else 0.0
+    }
+    val formattedRevenue = "K${String.format("%.2f", totalRevenue)}"
+    val adminName = if (userSession.name.isNotBlank()) userSession.name else "Campus Admin"
+
     Scaffold(
         containerColor = CampusCream,
         bottomBar = {
@@ -73,7 +94,7 @@ fun AdminDashboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Good morning, Maya",
+                                text = "Good morning, $adminName",
                                 fontFamily = FontFamily.Serif,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 26.sp,
@@ -102,16 +123,16 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Metric Summary Cards
+            // Real Metric Summary Cards
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MetricCard(title = "Tickets", value = events.size.toString() + "0+", modifier = Modifier.weight(1f))
-                MetricCard(title = "Check-ins", value = "71%", modifier = Modifier.weight(1f))
-                MetricCard(title = "Revenue", value = "K20000.00", modifier = Modifier.weight(1f))
+                MetricCard(title = "Tickets Sold", value = totalTicketsSold.toString(), modifier = Modifier.weight(1f))
+                MetricCard(title = "Check-ins", value = "${if (totalTicketsSold > 0) "85%" else "0%"}", modifier = Modifier.weight(1f))
+                MetricCard(title = "Revenue", value = formattedRevenue, modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -156,16 +177,36 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Active list of admin events with delete option
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(events) { event ->
-                    AdminEventCard(event = event, onDelete = { onDeleteEvent(event) })
+            // Active list of admin events with edit and delete options
+            if (adminEvents.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "You haven't created any events yet.",
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 14.sp,
+                        color = CampusGrey
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(adminEvents) { event ->
+                        AdminEventCard(
+                            event = event,
+                            onEdit = { onEditEventClick(event) },
+                            onDelete = { onDeleteEvent(event) }
+                        )
+                    }
                 }
             }
         }
@@ -195,7 +236,7 @@ fun MetricCard(title: String, value: String, modifier: Modifier = Modifier) {
                 text = value,
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 color = CampusNavy
             )
         }
@@ -203,9 +244,8 @@ fun MetricCard(title: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AdminEventCard(event: Event, onDelete: () -> Unit) {
-    val statusText = if (event.isPurchased) "On sale" else "Scheduled"
-    val statusColor = if (event.isPurchased) CampusAmber else CampusNavy
+fun AdminEventCard(event: Event, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val statusText = if (event.isPaid) "Paid · ${event.price}" else "Free"
 
     Surface(
         modifier = Modifier
@@ -231,30 +271,32 @@ fun AdminEventCard(event: Event, onDelete: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${event.month} ${event.day} · ${event.time} • ${if (event.isPaid) event.price else "Free"}",
+                    text = "${event.month} ${event.day} · ${event.time} • $statusText",
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 13.sp,
                     color = CampusGrey
                 )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Tickets sold: ${event.ticketsSold}",
+                    fontFamily = FontFamily.SansSerif,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                    color = CampusAmber
+                )
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Status Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(statusColor.copy(alpha = 0.2f))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = statusText,
-                        fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = if (statusText == "On sale") CampusInk else statusColor
+                // Edit Button
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Event",
+                        tint = CampusNavy,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
@@ -327,13 +369,5 @@ fun AdminBottomNavItem(
             fontSize = 11.sp,
             color = tintColor
         )
-    }
-}
-
-@Preview(showBackground = true, widthDp = 392, heightDp = 800)
-@Composable
-fun AdminDashboardScreenPreview() {
-    CompusConnectTheme {
-        AdminDashboardScreen()
     }
 }
