@@ -13,9 +13,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -254,13 +255,23 @@ fun LoginAuthScreen(
 
                             coroutineScope.launch {
                                 if (isLoginTab) {
-                                    val session = repository.signIn(email, password)
+                                    val result = repository.signIn(email, password)
                                     isLoading = false
-                                    if (session == null) {
-                                        errorMessage = "Account not found or invalid password. Please sign up first if you don't have an account."
-                                    } else {
-                                        onLoginSuccess(session)
-                                    }
+                                    result.fold(
+                                        onSuccess = { session -> onLoginSuccess(session) },
+                                        onFailure = { error ->
+                                            val msg = error.message ?: ""
+                                            errorMessage = when {
+                                                msg.contains("no user record", true) || msg.contains("user-not-found", true) ->
+                                                    "No account found with this email. Please sign up first."
+                                                msg.contains("password", true) || msg.contains("wrong-password", true) || msg.contains("invalid-credential", true) ->
+                                                    "Incorrect password. Please try again."
+                                                msg.contains("network", true) || msg.contains("internet", true) ->
+                                                    "Network error. Please check your internet connection."
+                                                else -> "Account not found or invalid password. Please sign up first if you don't have an account."
+                                            }
+                                        }
+                                    )
                                 } else {
                                     if (name.isBlank()) {
                                         isLoading = false
@@ -312,7 +323,7 @@ fun LoginAuthScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Google Button with authentic Google 4-color logo
+                    // Social Buttons (Google / Apple with working simulation)
                     OutlinedButton(
                         onClick = {
                             coroutineScope.launch {
@@ -349,7 +360,6 @@ fun LoginAuthScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Apple Button with authentic Apple silhouette logo
                     OutlinedButton(
                         onClick = {
                             coroutineScope.launch {
@@ -499,14 +509,22 @@ fun LoginAuthScreen(
                             isLoading = true
                             errorMessage = null
                             coroutineScope.launch {
-                                val session = repository.signUp(email, password, name)
+                                val result = repository.signUp(email, password, name)
                                 isLoading = false
-                                if (session == null) {
-                                    errorMessage = "Sign up failed. Email may already be in use."
-                                    authStep = AuthStep.FORM
-                                } else {
-                                    onLoginSuccess(session)
-                                }
+                                result.fold(
+                                    onSuccess = { session -> onLoginSuccess(session) },
+                                    onFailure = { error ->
+                                        val msg = error.message ?: ""
+                                        errorMessage = when {
+                                            msg.contains("email-already-in-use", true) ->
+                                                "This email is already registered. Please log in instead."
+                                            msg.contains("weak-password", true) ->
+                                                "Password should be at least 6 characters."
+                                            else -> "Sign up failed: ${error.localizedMessage ?: "Unknown error"}"
+                                        }
+                                        authStep = AuthStep.FORM
+                                    }
+                                )
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = CampusInk),
@@ -559,9 +577,6 @@ fun LoginAuthScreen(
     }
 }
 
-/**
- * Authentic Google 4-Color "G" Logo
- */
 @Composable
 fun GoogleIcon() {
     Box(
@@ -570,29 +585,20 @@ fun GoogleIcon() {
     ) {
         Canvas(modifier = Modifier.size(20.dp)) {
             val size = size
-            // Top red arc
             drawArc(color = Color(0xFFEA4335), startAngle = -90f, sweepAngle = 90f, useCenter = true, size = size)
-            // Left yellow arc
             drawArc(color = Color(0xFFFBBC05), startAngle = 180f, sweepAngle = 90f, useCenter = true, size = size)
-            // Bottom green arc
             drawArc(color = Color(0xFF34A853), startAngle = 90f, sweepAngle = 90f, useCenter = true, size = size)
-            // Right blue arc
             drawArc(color = Color(0xFF4285F4), startAngle = 0f, sweepAngle = 90f, useCenter = true, size = size)
-            // Inner white circle
             drawCircle(color = Color.White, radius = size.minDimension * 0.28f, center = center)
-            // Blue horizontal bar
             drawRect(
                 color = Color(0xFF4285F4),
-                topLeft = androidx.compose.ui.geometry.Offset(center.x, center.y - size.minDimension * 0.14f),
-                size = androidx.compose.ui.geometry.Size(size.width * 0.45f, size.height * 0.28f)
+                topLeft = Offset(center.x, center.y - size.minDimension * 0.14f),
+                size = Size(size.width * 0.45f, size.height * 0.28f)
             )
         }
     }
 }
 
-/**
- * Authentic Apple Silhouette Logo
- */
 @Composable
 fun AppleIcon() {
     Box(
@@ -601,30 +607,28 @@ fun AppleIcon() {
     ) {
         Canvas(modifier = Modifier.size(20.dp)) {
             val path = Path().apply {
-                moveTo(size.width * 0.725f, size.height * 0.542f)
-                cubicTo(size.width * 0.725f, size.height * 0.455f, size.width * 0.795f, size.height * 0.405f, size.width * 0.800f, size.height * 0.402f)
-                cubicTo(size.width * 0.760f, size.height * 0.345f, size.width * 0.697f, size.height * 0.337f, size.width * 0.675f, size.height * 0.335f)
-                cubicTo(size.width * 0.620f, size.height * 0.327f, size.width * 0.567f, size.height * 0.365f, size.width * 0.539f, size.height * 0.365f)
-                cubicTo(size.width * 0.511f, size.height * 0.365f, size.width * 0.466f, size.height * 0.337f, size.width * 0.421f, size.height * 0.339f)
-                cubicTo(size.width * 0.361f, size.height * 0.342f, size.width * 0.306f, size.height * 0.377f, size.width * 0.276f, size.height * 0.430f)
-                cubicTo(size.width * 0.211f, size.height * 0.542f, size.width * 0.261f, size.height * 0.705f, size.width * 0.325f, size.height * 0.795f)
-                cubicTo(size.width * 0.356f, size.height * 0.838f, size.width * 0.392f, size.height * 0.885f, size.width * 0.441f, size.height * 0.883f)
-                cubicTo(size.width * 0.489f, size.height * 0.880f, size.width * 0.508f, size.height * 0.852f, size.width * 0.565f, size.height * 0.852f)
-                cubicTo(size.width * 0.622f, size.height * 0.852f, size.width * 0.640f, size.height * 0.883f, size.width * 0.690f, size.height * 0.880f)
-                cubicTo(size.width * 0.740f, size.height * 0.878f, size.width * 0.772f, size.height * 0.833f, size.width * 0.803f, size.height * 0.789f)
-                cubicTo(size.width * 0.838f, size.height * 0.739f, size.width * 0.853f, size.height * 0.690f, size.width * 0.855f, size.height * 0.682f)
-                cubicTo(size.width * 0.852f, size.height * 0.680f, size.width * 0.725f, size.height * 0.628f, size.width * 0.725f, size.height * 0.542f)
+                moveTo(size.width * 0.5f, size.height * 0.15f)
+                cubicTo(size.width * 0.42f, size.height * 0.15f, size.width * 0.35f, size.height * 0.22f, size.width * 0.35f, size.height * 0.3f)
+                cubicTo(size.width * 0.35f, size.height * 0.32f, size.width * 0.36f, size.height * 0.35f, size.width * 0.38f, size.height * 0.38f)
+                cubicTo(size.width * 0.32f, size.height * 0.38f, size.width * 0.25f, size.height * 0.42f, size.width * 0.22f, size.height * 0.49f)
+                cubicTo(size.width * 0.18f, size.height * 0.57f, size.width * 0.22f, size.height * 0.72f, size.width * 0.30f, size.height * 0.84f)
+                cubicTo(size.width * 0.34f, size.height * 0.90f, size.width * 0.38f, size.height * 0.95f, size.width * 0.44f, size.height * 0.95f)
+                cubicTo(size.width * 0.49f, size.height * 0.95f, size.width * 0.51f, size.height * 0.91f, size.width * 0.57f, size.height * 0.91f)
+                cubicTo(size.width * 0.63f, size.height * 0.91f, size.width * 0.65f, size.height * 0.95f, size.width * 0.70f, size.height * 0.95f)
+                cubicTo(size.width * 0.76f, size.height * 0.95f, size.width * 0.80f, size.height * 0.90f, size.width * 0.84f, size.height * 0.84f)
+                cubicTo(size.width * 0.92f, size.height * 0.72f, size.width * 0.96f, size.height * 0.57f, size.width * 0.92f, size.height * 0.49f)
+                cubicTo(size.width * 0.89f, size.height * 0.42f, size.width * 0.82f, size.height * 0.38f, size.width * 0.76f, size.height * 0.38f)
+                cubicTo(size.width * 0.71f, size.height * 0.38f, size.width * 0.66f, size.height * 0.41f, size.width * 0.63f, size.height * 0.41f)
+                cubicTo(size.width * 0.60f, size.height * 0.35f, size.width * 0.57f, size.height * 0.15f, size.width * 0.5f, size.height * 0.15f)
                 close()
-                moveTo(598f, 237f)
-                cubicTo(623f, 206f, 640f, 163f, 635f, 120f)
-                cubicTo(598f, 122f, 552f, 146f, 528f, 175f)
-                cubicTo(505f, 202f, 487f, 247f, 493f, 290f)
-                cubicTo(533f, 292f, 574f, 268f, 598f, 237f)
+                moveTo(size.width * 0.59f, size.height * 0.08f)
+                cubicTo(size.width * 0.62f, size.height * 0.04f, size.width * 0.61f, size.height * 0.01f, size.width * 0.60f, size.height * 0.0f)
+                cubicTo(size.width * 0.55f, size.height * 0.0f, size.width * 0.51f, size.height * 0.04f, size.width * 0.49f, size.height * 0.08f)
+                cubicTo(size.width * 0.47f, size.height * 0.12f, size.width * 0.49f, size.height * 0.16f, size.width * 0.50f, size.height * 0.17f)
+                cubicTo(size.width * 0.53f, size.height * 0.18f, size.width * 0.57f, size.height * 0.13f, size.width * 0.59f, size.height * 0.08f)
                 close()
             }
-            scale(scaleX = size.width / 1000f, scaleY = size.height / 1000f) {
-                drawPath(path = path, color = Color.Black)
-            }
+            drawPath(path = path, color = Color.Black)
         }
     }
 }

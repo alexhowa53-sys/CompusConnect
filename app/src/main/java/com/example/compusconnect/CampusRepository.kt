@@ -10,86 +10,65 @@ class CampusRepository {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
-    suspend fun signIn(email: String, password: String): UserSession? {
-        val trimmedEmail = email.trim()
-
-        // Allow test admin account to log in instantly without prior Firebase signup
-        if (trimmedEmail.equals("admin@compusconnect.com", ignoreCase = true) && password == "admin123") {
-            return UserSession(
-                isLoggedIn = true,
-                name = "Campus Admin",
-                email = trimmedEmail,
-                role = UserRole.ADMIN
-            )
-        }
-
+    suspend fun signIn(email: String, password: String): Result<UserSession> {
         return try {
+            val trimmedEmail = email.trim()
             val result = auth.signInWithEmailAndPassword(trimmedEmail, password).await()
-            val user = result.user ?: return null
-            val emailStr = user.email ?: email
-            val role = if (emailStr.equals("admin@compusconnect.com", ignoreCase = true) || emailStr.contains("admin")) {
-                UserRole.ADMIN
-            } else {
-                UserRole.STUDENT
-            }
-            UserSession(
-                isLoggedIn = true,
-                name = user.displayName ?: emailStr.substringBefore("@").replaceFirstChar { it.uppercase() },
-                email = emailStr,
-                role = role
-            )
-        } catch (e: Exception) {
-            Log.e("CampusRepo", "Firebase sign in failed: ${e.message}, falling back to simulated session", e)
-            // Robust simulation fallback so login always works smoothly
-            if (password.length >= 6) {
+            val user = result.user ?: return Result.failure(Exception("Authentication failed."))
+            
+            // Read role securely from Firestore users/{uid}
+            val userDoc = db.collection("users").document(user.uid).get().await()
+            val roleStr = userDoc.getString("role") ?: "student"
+            val role = if (roleStr.equals("admin", ignoreCase = true)) UserRole.ADMIN else UserRole.STUDENT
+            val name = userDoc.getString("name") ?: user.displayName ?: trimmedEmail.substringBefore("@")
+
+            Result.success(
                 UserSession(
                     isLoggedIn = true,
-                    name = trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() },
+                    uid = user.uid,
+                    name = name,
                     email = trimmedEmail,
-                    role = UserRole.STUDENT
+                    role = role
                 )
-            } else {
-                null
-            }
+            )
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Sign in failed: ${e.message}", e)
+            Result.failure(e)
         }
     }
 
-    suspend fun signUp(email: String, password: String, name: String): UserSession? {
-        val trimmedEmail = email.trim()
+    suspend fun signUp(email: String, password: String, name: String): Result<UserSession> {
         return try {
+            val trimmedEmail = email.trim()
+            val trimmedName = name.trim()
             val result = auth.createUserWithEmailAndPassword(trimmedEmail, password).await()
-            val user = result.user ?: return null
-            
+            val user = result.user ?: return Result.failure(Exception("Sign up failed."))
+
             val profileUpdates = UserProfileChangeRequest.Builder()
-                .setDisplayName(name.trim())
+                .setDisplayName(trimmedName)
                 .build()
             user.updateProfile(profileUpdates).await()
 
-            val emailStr = user.email ?: email
-            val role = if (emailStr.equals("admin@compusconnect.com", ignoreCase = true) || emailStr.contains("admin")) {
-                UserRole.ADMIN
-            } else {
-                UserRole.STUDENT
-            }
-            UserSession(
-                isLoggedIn = true,
-                name = name.trim().ifBlank { emailStr.substringBefore("@").replaceFirstChar { it.uppercase() } },
-                email = emailStr,
-                role = role
+            // Create Firestore user document with role = "student" (Admins cannot be created via public sign up)
+            val userData = mapOf(
+                "name" to trimmedName,
+                "email" to trimmedEmail,
+                "role" to "student"
             )
-        } catch (e: Exception) {
-            Log.e("CampusRepo", "Firebase sign up failed: ${e.message}, falling back to simulated session", e)
-            // Robust simulation fallback so sign up always succeeds smoothly
-            if (password.length >= 6) {
+            db.collection("users").document(user.uid).set(userData).await()
+
+            Result.success(
                 UserSession(
                     isLoggedIn = true,
-                    name = name.trim().ifBlank { trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() } },
+                    uid = user.uid,
+                    name = trimmedName,
                     email = trimmedEmail,
                     role = UserRole.STUDENT
                 )
-            } else {
-                null
-            }
+            )
+        } catch (e: Exception) {
+            Log.e("CampusRepo", "Sign up failed: ${e.message}", e)
+            Result.failure(e)
         }
     }
 

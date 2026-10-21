@@ -35,6 +35,7 @@ enum class UserRole {
 
 data class UserSession(
     val isLoggedIn: Boolean = false,
+    val uid: String = "",
     val name: String = "",
     val email: String = "",
     val role: UserRole = UserRole.STUDENT
