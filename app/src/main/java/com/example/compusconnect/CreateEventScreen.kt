@@ -31,16 +31,16 @@ fun CreateEventScreen(
     onPublishEvent: (Event) -> Unit = {},
     onUpdateEvent: (Event) -> Unit = {}
 ) {
-    var title by remember { mutableStateOf(eventToEdit?.title ?: "") }
-    var day by remember { mutableStateOf(eventToEdit?.day ?: "25") }
-    var month by remember { mutableStateOf(eventToEdit?.month ?: "OCT") }
-    var time by remember { mutableStateOf(eventToEdit?.time ?: "7:00 PM") }
-    var location by remember { mutableStateOf(eventToEdit?.location ?: "") }
-    var description by remember { mutableStateOf(eventToEdit?.description ?: "") }
-    var selectedCategory by remember { mutableStateOf(eventToEdit?.category ?: EventCategory.MUSIC) }
-    var isPaid by remember { mutableStateOf(eventToEdit?.isPaid ?: false) }
-    var price by remember { mutableStateOf(eventToEdit?.price ?: "K5000.00") }
-    var posterUrlInput by remember { mutableStateOf(eventToEdit?.posterUrl ?: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80") }
+    var title by remember(eventToEdit) { mutableStateOf(eventToEdit?.title ?: "") }
+    var day by remember(eventToEdit) { mutableStateOf(eventToEdit?.day ?: "25") }
+    var month by remember(eventToEdit) { mutableStateOf(eventToEdit?.month ?: "OCT") }
+    var time by remember(eventToEdit) { mutableStateOf(eventToEdit?.time ?: "7:00 PM") }
+    var location by remember(eventToEdit) { mutableStateOf(eventToEdit?.location ?: "") }
+    var description by remember(eventToEdit) { mutableStateOf(eventToEdit?.description ?: "") }
+    var selectedCategory by remember(eventToEdit) { mutableStateOf(eventToEdit?.category ?: EventCategory.MUSIC) }
+    var isPaid by remember(eventToEdit) { mutableStateOf(eventToEdit?.isPaid ?: false) }
+    var price by remember(eventToEdit) { mutableStateOf(eventToEdit?.price ?: "K5000.00") }
+    var posterUrlInput by remember(eventToEdit) { mutableStateOf(eventToEdit?.posterUrl ?: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Launcher to pick an image from phone gallery

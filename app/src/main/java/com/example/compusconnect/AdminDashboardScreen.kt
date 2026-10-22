@@ -1,5 +1,6 @@
 package com.example.compusconnect
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +24,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.compusconnect.ui.theme.CompusConnectTheme
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun AdminDashboardScreen(
@@ -35,7 +38,6 @@ fun AdminDashboardScreen(
     onSwitchToStudentView: () -> Unit = {},
     onDeleteEvent: (Event) -> Unit = {}
 ) {
-    // Filter events created by this admin (or fallback if ownerUid is unassigned)
     val adminEvents = remember(events, userSession.uid) {
         if (userSession.uid.isNotBlank()) {
             events.filter { it.ownerUid == userSession.uid || it.ownerUid.isBlank() }
@@ -51,8 +53,16 @@ fun AdminDashboardScreen(
             priceNum * ev.ticketsSold
         } else 0.0
     }
-    val formattedRevenue = "K${String.format("%.2f", totalRevenue)}"
+    val formattedRevenue = "K${String.format(Locale.getDefault(), "%.2f", totalRevenue)}"
     val adminName = if (userSession.name.isNotBlank()) userSession.name else "Campus Admin"
+
+    // Dynamic greeting based on current time
+    val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val greeting = when {
+        currentHour < 12 -> "Good morning"
+        currentHour < 17 -> "Good afternoon"
+        else -> "Good evening"
+    }
 
     Scaffold(
         containerColor = CampusCream,
@@ -69,7 +79,6 @@ fun AdminDashboardScreen(
                 .padding(innerPadding)
                 .background(CampusCream)
         ) {
-            // Admin Top Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,27 +103,46 @@ fun AdminDashboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Good morning, $adminName",
+                                text = greeting,
+                                fontFamily = FontFamily.SansSerif,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 14.sp,
+                                color = CampusCream.copy(alpha = 0.8f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = adminName,
                                 fontFamily = FontFamily.Serif,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 26.sp,
+                                fontSize = 24.sp,
                                 color = CampusCream
                             )
                         }
 
-                        // Switch to Student View button
-                        IconButton(
+                        // Clear Switch to Student View Button
+                        OutlinedButton(
                             onClick = onSwitchToStudentView,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f))
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.White.copy(alpha = 0.15f),
+                                contentColor = CampusCream
+                            ),
+                            border = BorderStroke(1.dp, CampusCream.copy(alpha = 0.3f)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.SwitchAccount,
-                                contentDescription = "Switch to Student View",
+                                imageVector = Icons.Default.School,
+                                contentDescription = null,
                                 tint = CampusAmber,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Student View",
+                                fontFamily = FontFamily.SansSerif,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = CampusCream
                             )
                         }
                     }
@@ -123,7 +151,6 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Real Metric Summary Cards
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -131,13 +158,12 @@ fun AdminDashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 MetricCard(title = "Tickets Sold", value = totalTicketsSold.toString(), modifier = Modifier.weight(1f))
-                MetricCard(title = "Check-ins", value = "${if (totalTicketsSold > 0) "85%" else "0%"}", modifier = Modifier.weight(1f))
+                MetricCard(title = "Check-ins", value = if (totalTicketsSold > 0) "85%" else "0%", modifier = Modifier.weight(1f))
                 MetricCard(title = "Revenue", value = formattedRevenue, modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Create Event Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,7 +191,6 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Your events section title
             Text(
                 text = "Your events",
                 fontFamily = FontFamily.Serif,
@@ -177,7 +202,6 @@ fun AdminDashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Active list of admin events with edit and delete options
             if (adminEvents.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -245,8 +269,6 @@ fun MetricCard(title: String, value: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun AdminEventCard(event: Event, onEdit: () -> Unit, onDelete: () -> Unit) {
-    val statusText = if (event.isPaid) "Paid · ${event.price}" else "Free"
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,13 +292,38 @@ fun AdminEventCard(event: Event, onEdit: () -> Unit, onDelete: () -> Unit) {
                     color = CampusInk
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${event.month} ${event.day} · ${event.time} • $statusText",
-                    fontFamily = FontFamily.SansSerif,
-                    fontSize = 13.sp,
-                    color = CampusGrey
-                )
-                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "${event.month} ${event.day} · ${event.time}",
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 13.sp,
+                        color = CampusGrey
+                    )
+
+                    // Paid events shown in soft sage matching design language
+                    val badgeBg = CampusSage
+                    val badgeText = if (event.isPaid) "Paid · ${event.price}" else "Free"
+                    val badgeTextColor = CampusSageText
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = badgeBg
+                    ) {
+                        Text(
+                            text = badgeText,
+                            fontFamily = FontFamily.SansSerif,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp,
+                            color = badgeTextColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Tickets sold: ${event.ticketsSold}",
                     fontFamily = FontFamily.SansSerif,
@@ -290,7 +337,6 @@ fun AdminEventCard(event: Event, onEdit: () -> Unit, onDelete: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Edit Button
                 IconButton(onClick = onEdit) {
                     Icon(
                         imageVector = Icons.Default.Edit,
@@ -300,7 +346,6 @@ fun AdminEventCard(event: Event, onEdit: () -> Unit, onDelete: () -> Unit) {
                     )
                 }
 
-                // Delete Button
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
@@ -369,5 +414,13 @@ fun AdminBottomNavItem(
             fontSize = 11.sp,
             color = tintColor
         )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 392, heightDp = 800)
+@Composable
+fun AdminDashboardScreenPreview() {
+    CompusConnectTheme {
+        AdminDashboardScreen()
     }
 }

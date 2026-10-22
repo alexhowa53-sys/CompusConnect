@@ -6,37 +6,14 @@ enum class AuthStep {
 }
 
 /**
- * Checks the given credentials and returns a UserSession describing who
- * just logged in, or null if the credentials were invalid/empty.
- *
- * Admin check is hardcoded for now — swap the email/password for your
- * own test admin account, and change this to a real backend check later.
+ * Pure input validation function for login credentials format and length.
+ * Validates email format using regex and ensures password is at least 6 characters.
  */
-fun attemptLogin(email: String, password: String): UserSession? {
+fun validateLoginInput(email: String, password: String): Boolean {
     val trimmedEmail = email.trim()
-
-    if (trimmedEmail.isBlank() || password.isBlank()) {
-        return null // invalid login — caller should show an error message
-    }
-
-    val isAdmin = trimmedEmail.equals("admin@compusconnect.com", ignoreCase = true) &&
-            password == "admin123"
-
-    return if (isAdmin) {
-        UserSession(
-            isLoggedIn = true,
-            name = "Campus Admin",
-            email = trimmedEmail,
-            role = UserRole.ADMIN
-        )
-    } else {
-        // Any other valid-looking email/password combo is treated as a student
-        // for now. Later, this should check against real registered accounts.
-        UserSession(
-            isLoggedIn = true,
-            name = trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() },
-            email = trimmedEmail,
-            role = UserRole.STUDENT
-        )
-    }
+    if (trimmedEmail.isBlank() || password.isBlank()) return false
+    val emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$".toRegex()
+    val isEmailValid = emailRegex.matches(trimmedEmail)
+    val isPasswordValid = password.length >= 6
+    return isEmailValid && isPasswordValid
 }

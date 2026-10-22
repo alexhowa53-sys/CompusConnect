@@ -6,32 +6,23 @@ import org.junit.Test
 class AuthHelperTest {
 
     @Test
-    fun testAdminLoginSuccess() {
-        val session = attemptLogin("admin@compusconnect.com", "admin123")
-        assertNotNull(session)
-        assertTrue(session!!.isLoggedIn)
-        assertEquals(UserRole.ADMIN, session.role)
-        assertEquals("admin@compusconnect.com", session.email)
+    fun testValidLoginInput() {
+        assertTrue(validateLoginInput("student@university.edu", "password123"))
     }
 
     @Test
-    fun testStudentLoginSuccess() {
-        val session = attemptLogin("alex@university.edu", "mypassword")
-        assertNotNull(session)
-        assertTrue(session!!.isLoggedIn)
-        assertEquals(UserRole.STUDENT, session.role)
-        assertEquals("Alex", session.name)
+    fun testInvalidEmailFormat() {
+        assertFalse(validateLoginInput("notanemail", "password123"))
     }
 
     @Test
-    fun testInvalidLoginBlank() {
-        val session1 = attemptLogin("", "password")
-        assertNull(session1)
+    fun testShortPassword() {
+        assertFalse(validateLoginInput("student@university.edu", "123"))
+    }
 
-        val session2 = attemptLogin("user@test.com", "")
-        assertNull(session2)
-
-        val session3 = attemptLogin("   ", "   ")
-        assertNull(session3)
+    @Test
+    fun testBlankInput() {
+        assertFalse(validateLoginInput("", "password123"))
+        assertFalse(validateLoginInput("student@university.edu", ""))
     }
 }

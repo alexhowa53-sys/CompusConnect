@@ -1,10 +1,18 @@
 package com.example.compusconnect
 
+import android.Manifest
 import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 sealed class Screen {
@@ -15,6 +23,7 @@ sealed class Screen {
     object TicketConfirmation : Screen()
     object AdminDashboard : Screen()
     object CreateEvent : Screen()
+    object Notifications : Screen()
 }
 
 @Composable
@@ -23,7 +32,20 @@ fun MainApp() {
     var studentTab by remember { mutableStateOf(0) } // 0: Home, 1: Search, 2: Tickets, 3: Profile
     var userSession by remember { mutableStateOf(UserSession()) }
     var eventBeingEdited by remember { mutableStateOf<Event?>(null) }
+    var lastPurchasedRefs by remember { mutableStateOf(listOf("CC-TKT-8849")) }
     val repository = remember { CampusRepository() }
+    val context = LocalContext.current
+
+    // Request notification permission on Android 13+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     // Hoisted shared events state across Home, Search, Details, and Tickets
     var events by remember {
@@ -61,8 +83,30 @@ fun MainApp() {
         )
     }
 
+    // Unread notification count state
+    var unreadNotificationCount by remember { mutableStateOf(0) }
+
     // Fetch events and user-specific saved/purchased tickets from Firestore on startup or login
     LaunchedEffect(userSession.uid) {
+        val rememberMe = CampusPreferences.getRememberMe(context).first()
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (userSession.uid.isBlank() && currentUser != null && rememberMe) {
+            val role = repository.fetchUserRole(currentUser.uid)
+            userSession = UserSession(
+                isLoggedIn = true,
+                uid = currentUser.uid,
+                name = currentUser.displayName ?: currentUser.email?.substringBefore("@") ?: "User",
+                email = currentUser.email ?: "",
+                role = role
+            )
+            FirebaseMessaging.getInstance().subscribeToTopic("students")
+            if (role == UserRole.ADMIN) {
+                currentRoute = Screen.AdminDashboard
+            }
+        } else if (!rememberMe && currentUser != null && userSession.uid.isBlank()) {
+            FirebaseAuth.getInstance().signOut()
+        }
+
         val remoteEvents = repository.fetchEvents()
         if (remoteEvents.isNotEmpty()) {
             events = remoteEvents
@@ -77,6 +121,10 @@ fun MainApp() {
                     isPurchased = ticketIds.contains(ev.id)
                 )
             }
+
+            // Calculate unread notifications count
+            val notifs = repository.fetchNotifications(userSession.uid)
+            unreadNotificationCount = notifs.count { !it.isRead }
         }
     }
 
@@ -99,21 +147,6 @@ fun MainApp() {
         }
     }
 
-    val onBuyTicket: (Event) -> Unit = { eventToBuy ->
-        events = events.map { ev ->
-            if (ev.id == eventToBuy.id) ev.copy(isPurchased = true, isSaved = true) else ev
-        }
-        selectedEventId = eventToBuy.id
-        currentRoute = Screen.TicketConfirmation
-
-        if (userSession.isLoggedIn && userSession.uid.isNotBlank()) {
-            CoroutineScope(Dispatchers.IO).launch {
-                repository.purchaseTicket(userSession.uid, eventToBuy)
-                repository.saveEvent(userSession.uid, eventToBuy)
-            }
-        }
-    }
-
     Crossfade(targetState = currentRoute, label = "ScreenTransition") { route ->
         when (route) {
             is Screen.Splash -> {
@@ -127,6 +160,7 @@ fun MainApp() {
                 LoginAuthScreen(
                     onLoginSuccess = { session ->
                         userSession = session
+                        FirebaseMessaging.getInstance().subscribeToTopic("students")
                         if (session.role == UserRole.ADMIN) {
                             currentRoute = Screen.AdminDashboard
                         } else {
@@ -148,7 +182,19 @@ fun MainApp() {
                                 selectedEventId = event.id
                                 currentRoute = Screen.EventDetails
                             },
-                            onToggleSave = onToggleSave
+                            onToggleSave = onToggleSave,
+                            unreadNotificationCount = unreadNotificationCount,
+                            isLoggedIn = userSession.isLoggedIn,
+                            onNotificationClick = {
+                                if (userSession.isLoggedIn) {
+                                    currentRoute = Screen.Notifications
+                                } else {
+                                    currentRoute = Screen.Login
+                                }
+                            },
+                            onLoginPrompt = {
+                                currentRoute = Screen.Login
+                            }
                         )
                         1 -> SearchScreen(
                             currentScreen = studentTab,
@@ -180,6 +226,8 @@ fun MainApp() {
                                 currentRoute = Screen.AdminDashboard
                             },
                             onLogout = {
+                                FirebaseMessaging.getInstance().unsubscribeFromTopic("students")
+                                FirebaseAuth.getInstance().signOut()
                                 userSession = UserSession()
                                 currentRoute = Screen.MainStudent
                                 studentTab = 0
@@ -191,16 +239,29 @@ fun MainApp() {
             is Screen.EventDetails -> {
                 EventDetailsScreen(
                     event = selectedEvent,
+                    userSession = userSession,
                     onBackClick = { currentRoute = Screen.MainStudent },
                     onToggleSave = { onToggleSave(selectedEvent) },
-                    onBuyTicketClick = {
-                        onBuyTicket(selectedEvent)
+                    onRequireLogin = { currentRoute = Screen.Login },
+                    onTicketPurchased = { refs, qty ->
+                        lastPurchasedRefs = refs
+                        events = events.map { ev ->
+                            if (ev.id == selectedEvent.id) ev.copy(isPurchased = true, isSaved = true) else ev
+                        }
+                        currentRoute = Screen.TicketConfirmation
+                        if (userSession.isLoggedIn && userSession.uid.isNotBlank()) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                repository.saveEvent(userSession.uid, selectedEvent)
+                            }
+                        }
                     }
                 )
             }
             is Screen.TicketConfirmation -> {
                 TicketConfirmationScreen(
                     event = selectedEvent,
+                    ticketRefs = lastPurchasedRefs,
+                    holderName = if (userSession.name.isNotBlank()) userSession.name else "Campus Student",
                     onViewMyTicketsClick = {
                         currentRoute = Screen.MainStudent
                         studentTab = 2 // Tickets tab
@@ -208,6 +269,16 @@ fun MainApp() {
                     onBackToHomeClick = {
                         currentRoute = Screen.MainStudent
                         studentTab = 0 // Home tab
+                    }
+                )
+            }
+            is Screen.Notifications -> {
+                NotificationsScreen(
+                    userSession = userSession,
+                    onBackClick = { currentRoute = Screen.MainStudent },
+                    onEventClick = { eventId ->
+                        selectedEventId = eventId
+                        currentRoute = Screen.EventDetails
                     }
                 )
             }

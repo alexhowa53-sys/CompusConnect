@@ -27,11 +27,13 @@ import com.example.compusconnect.ui.theme.CompusConnectTheme
 @Composable
 fun TicketConfirmationScreen(
     event: Event,
-    ticketRef: String = "CC-2025-8849",
+    ticketRefs: List<String> = listOf("CC-2025-8849"),
     holderName: String = "Alex Lee",
     onViewMyTicketsClick: () -> Unit = {},
     onBackToHomeClick: () -> Unit = {}
 ) {
+    val firstName = holderName.substringBefore(" ").ifBlank { holderName }
+
     Scaffold(
         containerColor = CampusCream
     ) { innerPadding ->
@@ -39,7 +41,8 @@ fun TicketConfirmationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Dark navy top header card / container
@@ -72,17 +75,18 @@ fun TicketConfirmationScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "You're on the list!",
+                        text = "You're on the list, $firstName!",
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
-                        color = CampusCream
+                        color = CampusCream,
+                        textAlign = TextAlign.Center
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Your ticket has been successfully booked.",
+                        text = "You have successfully booked ${ticketRefs.size} ticket(s).",
                         fontFamily = FontFamily.SansSerif,
                         fontSize = 14.sp,
                         color = CampusSubtitleBlue
@@ -116,77 +120,74 @@ fun TicketConfirmationScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "${event.month} ${event.day}, 2025 · ${event.time}",
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 14.sp,
-                        color = CampusAmber,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Text(
-                        text = event.location,
+                        text = "${event.month} ${event.day} · ${event.time} • ${event.location}",
                         fontFamily = FontFamily.SansSerif,
                         fontSize = 13.sp,
-                        color = CampusGrey
+                        color = CampusGrey,
+                        textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
-                    HorizontalDivider(color = CampusLightBeige, thickness = 1.dp)
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = CampusLightBeige)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Ticket Holder
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Ticket Holder:", fontFamily = FontFamily.SansSerif, fontSize = 13.sp, color = CampusGrey)
+                        Text(holderName, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = CampusInk)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
-                            Text(text = "TICKET HOLDER", fontSize = 10.sp, color = CampusGrey, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = holderName, fontSize = 14.sp, color = CampusInk, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(text = "REFERENCE", fontSize = 10.sp, color = CampusGrey, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = ticketRef, fontSize = 14.sp, color = CampusInk, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
-                        }
+                        Text("Quantity:", fontFamily = FontFamily.SansSerif, fontSize = 13.sp, color = CampusGrey)
+                        Text("${ticketRefs.size} Ticket(s)", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = CampusInk)
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = CampusLightBeige)
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // QR / Barcode stub representation
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(CampusLightBeige),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    // Reference Codes
+                    Text("Reference Codes:", fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = CampusGrey)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    ticketRefs.forEach { code ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = CampusLightBeige
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.QrCode,
-                                contentDescription = "QR Stub",
-                                tint = CampusNavy,
-                                modifier = Modifier.size(54.dp)
-                            )
-                            Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = "Scan at entrance",
-                                    fontFamily = FontFamily.SansSerif,
+                                    text = code,
+                                    fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
+                                    fontSize = 14.sp,
                                     color = CampusNavy
                                 )
-                                Text(
-                                    text = "Tap for full screen pass",
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontSize = 11.sp,
-                                    color = CampusGrey
+                                Icon(
+                                    imageVector = Icons.Default.QrCode,
+                                    contentDescription = "QR Stub",
+                                    tint = CampusNavy,
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
@@ -194,7 +195,7 @@ fun TicketConfirmationScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Action Buttons
             Column(
@@ -205,7 +206,7 @@ fun TicketConfirmationScreen(
             ) {
                 Button(
                     onClick = onViewMyTicketsClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = CampusNavy),
+                    colors = ButtonDefaults.buttonColors(containerColor = CampusAmber),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -216,7 +217,7 @@ fun TicketConfirmationScreen(
                         fontFamily = FontFamily.SansSerif,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = CampusCream
+                        color = CampusInk
                     )
                 }
 
@@ -226,7 +227,7 @@ fun TicketConfirmationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CampusNavy)
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                 ) {
                     Text(
                         text = "Back to Home",
@@ -237,8 +238,6 @@ fun TicketConfirmationScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -248,20 +247,9 @@ fun TicketConfirmationScreen(
 fun TicketConfirmationScreenPreview() {
     CompusConnectTheme {
         TicketConfirmationScreen(
-            event = Event(
-                id = "1",
-                title = "Welcoming Function",
-                day = "14",
-                month = "OCT",
-                time = "7:00 PM",
-                location = "Great Hall",
-                description = "Join us for the biggest night.",
-                category = EventCategory.MUSIC,
-                isPaid = true,
-                price = "K5000.00",
-                isSaved = true,
-                isPurchased = true
-            )
+            event = sampleEvents[0],
+            ticketRefs = listOf("CC-TKT-884921", "CC-TKT-449102"),
+            holderName = "Alex Lee"
         )
     }
 }

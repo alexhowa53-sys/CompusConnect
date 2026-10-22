@@ -40,26 +40,8 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(24.dp)
         ) {
-            // Logo "C."
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "C",
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 72.sp,
-                    color = CampusAmber
-                )
-                Box(
-                    modifier = Modifier
-                        .padding(bottom = 16.dp, start = 2.dp)
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(CampusAmber)
-                )
-            }
+            // Campus Logo mark
+            CampusLogo(size = 112.dp)
 
             Spacer(modifier = Modifier.height(24.dp))
 
